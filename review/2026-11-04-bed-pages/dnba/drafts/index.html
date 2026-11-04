@@ -1,0 +1,74 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Distinct Need Bars: Animated: draft page</title><style>
+body { background:#1b2838; color:#acb2b8; font-family: Arial, Helvetica, sans-serif; margin:0; }
+.page { width: 960px; margin: 0 auto; padding: 16px 0 48px; }
+h1 { color:#fff; font-size: 26px; font-weight: normal; margin: 8px 0 12px; }
+.top { display:flex; gap:16px; align-items:flex-start; }
+.top .preview img { width: 616px; display:block; }
+.top .side { font-size: 13px; }
+.thumb img { width: 230px; display:block; margin-top: 6px; }
+.strip { display:flex; gap:6px; margin: 10px 0 22px; overflow-x:auto; }
+.strip img { height: 68px; border: 1px solid #3d4450; }
+.desc { background:#16202d; padding: 14px 18px; font-size: 14px; line-height: 1.55; width: 636px; }
+.desc h2 { color:#66c0f4; font-size: 17px; font-weight: normal; margin: 18px 0 6px; }
+.desc img { max-width: 100%; display:block; margin: 6px 0; }
+.desc a { color:#66c0f4; text-decoration:none; }
+.desc b { color:#fff; }
+.note { font-size: 12px; color:#8f98a0; margin: 4px 0 14px; }
+</style></head>
+<body><div class="page">
+<h1>Distinct Need Bars: Animated</h1>
+<div class="note">Draft for review, lanes DNBA-PAGE (2026-11-02), DNBA-PAGE2 and DNBA-PAGE3 (2026-11-03). Not published.
+Images are the local drafts; on Steam the description images load from https://evyatar108.github.io/rimworld-media/dnba/. The preview is the
+animated preview.gif (uploaded with SteamWorkshopAgent's preview command); About\Preview.png stays the still
+preview.png for the game's mod list. The gallery is two PNG stills.</div>
+<div class="top">
+<div class="preview"><img src="../previews/preview.gif" alt="preview"></div>
+<div class="side">Preview at the Workshop's thumbnail width (230 px):
+<div class="thumb"><img src="../previews/preview.gif" alt="preview at 230 px"></div></div>
+</div>
+<div class="strip"><img src="../previews/preview.gif" alt="preview">
+<a href="../gallery/02-food-states.png"><img src="../gallery/02-food-states.png" alt="02-food-states.png"></a>
+<a href="../gallery/06-settings.png"><img src="../gallery/06-settings.png" alt="06-settings.png"></a></div>
+<div class="desc">
+<img src="d02-low-needs.gif" alt="d02-low-needs.gif">
+<br>
+An add-on for <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3831568667">Distinct Need Bars</a>. It needs Distinct Need Bars 1.1.1 or later and <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=2009463077">Harmony</a>, and loads after Distinct Need Bars.<br>
+<br>
+Ever missed that a colonist was starving until the mood break? This add-on makes the need icons and bars react as a need runs low: the icons change picture (the Food bowl empties, the Sleep bed is left unmade, then stripped, the Alcohol mug drains), the icons of needs that are running out give a short wiggle, their bars glow faintly red, and a bar slides to its new level instead of jumping.<br>
+<br>
+<h2>What it does</h2><b>The icons change picture.</b> 41 needs have three pictures: full, low and empty. Food's icon shows a full bowl while a colonist is fed, a low bowl once they are Hungry, and an empty bowl when they are Urgently hungry or Starving. The other needs switch at their own marks on the bar. The list is below.<br>
+<img src="d03-food-states.png" alt="d03-food-states.png">
+<br>
+<b>Icons wiggle when a need runs low.</b> When a need drops below the lowest mark on its bar, its icon gives a short wiggle every second and a half. Every icon that is low wiggles at the same moment, so a colonist in trouble stands out in the Needs tab. The animation at the top of this page shows one colonist's Food, Sleep and Mood: fed, running low, below the last mark, then refilled.<br>
+<br>
+<b>The empty part of the bar glows.</b> Below that same mark, the empty part of the bar slowly pulses a faint red. The bar's own colour stays readable over it.<br>
+<br>
+<b>Bars slide instead of jumping.</b> When a need rises or falls in one go, such as when a colonist finishes a meal, its bar slides to the new level in under half a second. This works in the Needs tab and the caravan tab.<br>
+<img src="d04-refill.gif" alt="d04-refill.gif">
+<br>
+<b>Everything else stays as it was.</b> Distinct Need Bars still draws every bar, colour and icon. This add-on only changes the need pictures, the wiggle, the glow and the slide, and only in the Needs tab and the caravan tab. The slave tab's Suppression bar and the Biotech gene gizmos don't change.<br>
+<img src="d01-before-after.png" alt="d01-before-after.png">
+<br>
+<h2>Which needs show low and empty pictures</h2><ul><li>Vanilla: Mood, Food, Sleep, Recreation, Beauty, Comfort, Room size, Outdoors, Indoors and Chemical.</li><li>Addictions: Alcohol, Ambrosia, Go-juice, Luciferium, Psychite, Smokeleaf and Wake-up.</li><li>Biotech: Energy (mechanoids), Deathrest and Kill satiety (sanguophages), Learning (children) and Play (babies).</li><li>Other mods: Thirst, Bladder and Hygiene from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=836308268">Dubs Bad Hygiene</a>; Variety from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3829990093">Variety Matters 2</a>; Caffeine and Tobacco from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=2186560858">Vanilla Brewing Expanded</a>; Human flesh from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3122537632">The Heaven Forged Celestial</a>; Hornet honey from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=2553700067">Medieval Overhaul</a>; Opium from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=2787850474">Vanilla Factions Expanded - Classical</a>; Antibiotics from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=2901424072">Vanilla Races Expanded - Genie</a>; Lovin' from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=2995385834">Vanilla Races Expanded - Highmate</a>; Memory space and Power from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=2975771801">Vanilla Races Expanded - Android</a>; Anonymity, Corruption and Desserts from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=2636329500">Vanilla Ideology Expanded - Memes and Structures</a>; Firesap from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3217394931">[LTS]Biosphere</a>; and the Gauranlen and Meditation genes' needs from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=2884115974">Integrated Genes</a>.</li></ul>The game draws a baby's and a mechanoid's rows larger, as in the first picture below. Human flesh has its pictures but isn't in the images, since its mod has no 1.6 release yet. Other needs keep their usual icon.<br>
+<img src="d07-state-pictures-major.png" alt="d07-state-pictures-major.png">
+<img src="d08-state-pictures-minor.png" alt="d08-state-pictures-minor.png">
+<img src="d09-state-pictures-drugs.png" alt="d09-state-pictures-drugs.png">
+<img src="d10-state-pictures-more.png" alt="d10-state-pictures-more.png">
+<br>
+<h2>Which needs wiggle and glow</h2>The needs that harm a colonist when they run out:<br>
+<ul><li>Vanilla: Mood, Food and Sleep.</li><li>Addictions: Alcohol, Ambrosia, Go-juice, Luciferium, Psychite, Smokeleaf and Wake-up.</li><li>Other mods: Thirst and Bladder from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=836308268">Dubs Bad Hygiene</a>, Human flesh from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3122537632">The Heaven Forged Celestial</a>, Hornet honey from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=2553700067">Medieval Overhaul</a>, Caffeine and Tobacco from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=2186560858">Vanilla Brewing Expanded</a>, Opium from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=2787850474">Vanilla Factions Expanded - Classical</a>, and Antibiotics from <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=2901424072">Vanilla Races Expanded - Genie</a>.</li></ul>Other needs, such as Recreation, Beauty or Comfort, don't wiggle or glow, but their bars still slide.<br>
+<img src="d06-animated-needs.png" alt="d06-animated-needs.png">
+<br>
+<h2>The setting</h2>One checkbox in the mod settings, "Animate needs that are running out or refilling", turns the wiggle, the glow and the slide off. The low and empty pictures stay either way.<br>
+<img src="d05-settings.png" alt="d05-settings.png">
+<br>
+<h2>Compatibility</h2><ul><li>Requires <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3831568667">Distinct Need Bars</a> 1.1.1 or later and <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=2009463077">Harmony</a>. Load it after Distinct Need Bars.</li><li>RimWorld 1.6 and 1.7.</li><li>It only changes how the bars are drawn and saves nothing, so you can add or remove it from a running colony.</li><li>Mods that draw their own need bars, such as RimHUD and Numbers, keep their own look.</li></ul>
+<h2>Feedback</h2>Found a bug? Post it in the comments with your mod list and log if you can. Would you like another need to wiggle or get low and empty pictures? Tell me which one, and which mod it comes from.<br>
+<br>
+<b>How much AI did you use to make this mod and its images?</b> Yes. The page images are real in-game screenshots.<br>
+<br>
+<h2>Links</h2><ul><li>Distinct Need Bars: <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3831568667">Workshop</a></li><li>Harmony: <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=2009463077">Workshop</a></li></ul>
+</div>
+<div class="note">Description: 7,404 of Steam's 8,000 characters. Gallery order: preview, 02-food-states.png, 06-settings.png.</div>
+</div></body></html>
