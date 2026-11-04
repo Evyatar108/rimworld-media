@@ -9,5 +9,6 @@ GitHub Pages serves this repository at `https://evyatar108.github.io/rimworld-me
   (for VM2: `design\workshop\`).
 - A file that a published page links must not be renamed or deleted; publish a new name instead.
 - Each image is under 1 MB and about 800 px wide (Steam shrinks wider ones to the description column).
+- `review/<mod>-<date>/` holds review pages for Evyatar (art not yet on a page, viewable on a phone). No Workshop page links them, so they may be removed once reviewed.
 
 Images are © Evyatar108, made for these mod pages.
