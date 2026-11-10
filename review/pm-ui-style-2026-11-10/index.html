@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="design-page-profile" content="proposal">
+<!-- page-sources: the review's style guide, gap scorecard, mockups and capture runs, 2026-11-09 -->
+<title>Pain Matters&#39; UI: closer to RimWorld, still with the wow</title>
+<style>
+  /* Layout sizes. Three regions: the left list (--nav-w), the doc column and the right list (--rail-w). The doc column
+     is as wide as a figure, up to --fig-w; prose, tables and cards stop at --doc-w. */
+  :root {
+    --nav-w: 216px; --bar-h: 56px; --frame: 1600px; --edge: max(0px, calc((100vw - var(--frame)) / 2));
+    --fig-w: 1140px; --doc-w: 760px; --rail-w: 200px; --rail-gap: 32px; --main-pl: 32px; --main-pr: 24px;
+  }
+  /* From 1200 to 1439 px both lists narrow, so a figure stays wide enough for 12 px labels at 1366. */
+  @media (min-width: 1200px) and (max-width: 1439px) {
+    :root { --nav-w: 184px; --rail-w: 164px; --rail-gap: 24px; --main-pl: 24px; --main-pr: 16px; }
+  }
+  /* Every colour on the page and in its figures is a variable, so night mode can swap them all. Night values are at the end. */
+  body {
+    --bg: #ffffff; --surface: #fafafa; --raised: #ffffff; --card: #ffffff; --nav-bg: #ffffff;
+    --ink: #111113; --text: #2b2b30; --muted: #5f6068; --faint: #6e6f78; --line: #e8e8eb; --line-2: #d6d6db; --rule: #a9a9b2;
+    --indigo: #4f46e5; --indigo-50: #eef0ff; --note-bd: #c9cbf8; --on-accent: #ffffff; --ring: #8b87f0;
+    --teal: #0f766e; --teal-50: #e8f6f4; --var-bd: #b9e0da; --amber: #8f5600; --amber-50: #fdf5e6; --warn-bd: #efd6a6;
+    --red: #b42318; --red-50: #fdeceb; --stop-bd: #f3c5c0; --green: #15703a; --green-50: #eaf7ef; --green-bd: #bfe5cc;
+    --violet: #6d3bd1; --violet-50: #f3eefe; --violet-bd: #dccdfb; --blue: #1b5fc1; --blue-50: #eaf1fd;
+    --grey: #5f6068; --grey-50: #f2f2f4; --th: #f5f5f7;
+    --pre-bg: #fbfbfc; --pre-ink: #26262b; --code-head: #f5f5f7; --code-chip: #f6f6f8;
+    --tk-h: #111113; --tk-c: #6e6f78; --tk-n: #1d6fb8; --tk-k: #8a3fb8; --tk-s: #0f7b52;
+    --figbg: #fafafa; --fig-dot: #e3e3e8; --lane1: #f4f4ff; --lane2: #eff8f6; --lane3: #f4f4f6;
+    --sv-ex: #c9c9d0; --sv-arrow: #6e6f78; --sv-guard: #2b2b30; --node-shadow: #ececf0;
+    --chip-bg: #ffffff; --flag-bg: #ffffff; --chip-indigo-bd: #c9cbf8; --chip-teal-bd: #b9e0da; --chip-grey-bd: #d6d6db;
+    --same-bg: #f2f2f4; --same-bd: #a9a9b2; --re-a: #fef6f5; --re-b: #f6d3ce; --re-bd: #d9877d;
+    --hatch-bg: #fdf3f2; --hatch-line: #f2c4be;
+    --shadow-card: 0 1px 2px rgba(17, 17, 19, .05); --shadow-btn: 0 1px 2px rgba(17, 17, 19, .05);
+    --shadow-panel: 0 8px 28px rgba(17, 17, 19, .14);
+    --cols-w: var(--fig-w);
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.7 "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (min-width: 1200px) { body:has(aside.rail) { --cols-w: calc(var(--fig-w) + var(--rail-gap) + var(--rail-w)); } }
+  * { box-sizing: border-box; }
+  /* scroll-padding keeps a heading reached from the nav below the fixed bar. */
+  html { scroll-behavior: smooth; scroll-padding-top: calc(var(--bar-h) + 24px); }
+  ::selection { background: var(--indigo-50); }
+  a { color: var(--indigo); text-decoration: none; }
+  main a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  b, strong { color: var(--ink); font-weight: 600; }
+  /* Small text never renders under 12 px: code inside a caption or chip keeps 12 px. */
+  code, .mono { font-family: "Cascadia Mono", "Cascadia Code", Consolas, "SFMono-Regular", monospace; font-variant-ligatures: none; }
+  code { font-size: max(12px, .84em); padding: .1em .34em; border-radius: 4px; background: var(--code-chip); color: var(--pre-ink);
+    border: 1px solid var(--line); white-space: nowrap; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+  td code { font-size: 12.5px; }
+
+  /* Top bar: one flex row. The menu switch and the page's identity on the left, the night switch at the right end,
+     so nothing can overlap a switch. Both switches are a visually hidden checkbox and its label, no script; both reset on reload. */
+  .topbar { position: fixed; top: 0; left: 0; right: 0; z-index: 7; height: var(--bar-h); display: flex; align-items: center;
+    gap: 12px; padding: 0 calc(var(--edge) + var(--main-pr)) 0 calc(var(--edge) + 20px); white-space: nowrap;
+    background: var(--bg); border-bottom: 1px solid var(--line); }
+  #navhide, .mode-input { position: absolute; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .navtoggle, .mode { flex: none; display: inline-flex; align-items: center; justify-content: center; height: 32px; min-width: 32px;
+    padding: 0 12px; cursor: pointer; user-select: none; border: 1px solid var(--line-2); border-radius: 8px; background: var(--raised);
+    color: var(--ink); font-size: 13.5px; font-weight: 500; box-shadow: var(--shadow-btn); }
+  .navtoggle:hover, .mode:hover { border-color: var(--rule); }
+  .navtoggle > span, .mode > span { display: inline-flex; align-items: center; gap: 8px; }
+  .mode { margin-left: auto; }
+  .mode .to-day { display: none; }
+  .moon { display: inline-block; width: 13px; height: 13px; border-radius: 50%; box-shadow: inset -4px -3px 0 0 var(--ink); transform: rotate(-15deg); }
+  .sun { display: inline-block; width: 8px; height: 8px; margin: 3px; border-radius: 50%; background: var(--ink);
+    box-shadow: 0 -6px 0 -2px var(--ink), 0 6px 0 -2px var(--ink), 6px 0 0 -2px var(--ink), -6px 0 0 -2px var(--ink),
+    4.3px 4.3px 0 -2px var(--ink), -4.3px -4.3px 0 -2px var(--ink), 4.3px -4.3px 0 -2px var(--ink), -4.3px 4.3px 0 -2px var(--ink); }
+  body:has(#night:checked) .mode .to-night { display: none; }
+  body:has(#night:checked) .mode .to-day { display: inline-flex; }
+  .navtoggle { padding: 0; }
+  .navtoggle .to-show { display: none; }
+  .navtoggle .chev { display: inline-block; width: 7px; height: 7px; margin-left: 3px; transform: rotate(45deg);
+    border-left: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; }
+  .navtoggle .burger { position: relative; display: inline-block; width: 14px; height: 10px;
+    border-top: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; }
+  .navtoggle .burger::after { content: ""; position: absolute; left: 0; right: 0; top: 3px; border-top: 1.5px solid currentColor; }
+  .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  body:has(#navhide:checked) .navtoggle { padding: 0 12px; }
+  body:has(#navhide:checked) .navtoggle .to-hide { display: none; }
+  body:has(#navhide:checked) .navtoggle .to-show { display: inline-flex; }
+  body:has(#navhide:focus-visible) .navtoggle, body:has(#night:focus-visible) .mode, a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--ring); outline-offset: 2px; }
+  /* Identity: mark and title, the status pill, then the source line in muted text, which gives way first. */
+  .ident { flex: 0 1 auto; display: inline-flex; align-items: center; gap: 10px; min-width: 0; margin-left: 4px; color: var(--ink);
+    font: 600 15.5px/1 "Segoe UI Variable Display", "Segoe UI", sans-serif; }
+  .ident .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; padding: 2px 0; }
+  .mark { flex: none; width: 18px; height: 18px; border-radius: 5px; background: linear-gradient(135deg, var(--indigo) 0 50%, var(--ink) 50% 100%); }
+  .topbar .pill.status { flex: none; height: 24px; margin-left: 4px; font-size: 12.5px; color: var(--indigo);
+    background: var(--indigo-50); border-color: var(--note-bd); }
+  .rev { flex: 0 50 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; margin-left: 4px; color: var(--muted); font-size: 13px; }
+  .rev .mono { font-size: 12.5px; color: var(--ink); }
+  /* The right list's switch: a hidden checkbox and its label, shown in the bar under 1200 px, where the list folds.
+     Its label names the list: "Figures and tables" on a single page, "On this page" on a site page. */
+  #railshow { position: absolute; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .railbtn { display: none; flex: none; align-items: center; justify-content: center; gap: 8px; height: 32px; min-width: 32px;
+    padding: 0 12px; cursor: pointer; user-select: none; border: 1px solid var(--line-2); border-radius: 8px; background: var(--raised);
+    color: var(--ink); font-size: 13.5px; font-weight: 500; box-shadow: var(--shadow-btn); }
+  .railbtn:hover { border-color: var(--rule); }
+  .railbtn .chev { display: inline-block; width: 7px; height: 7px; margin: -4px 1px 0; transform: rotate(-45deg);
+    border-left: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; }
+  body:has(#railshow:checked) .railbtn .chev { margin-top: 4px; transform: rotate(135deg); }
+  body:has(#railshow:focus-visible) .railbtn { outline: 2px solid var(--ring); outline-offset: 2px; }
+  @media (max-width: 1199px) {
+    body:has(aside.rail) .railbtn { display: inline-flex; margin-left: auto; }
+    body:has(aside.rail) .railbtn ~ .mode { margin-left: 0; }
+    body:has(#railshow:checked) .railbtn { color: var(--indigo); background: var(--indigo-50); border-color: var(--note-bd); }
+  }
+  /* The night switch's right edge lines up with the right list, or with the content when the list is folded or absent. */
+  @media (min-width: 1001px) {
+    .topbar { padding-right: max(calc(var(--edge) + var(--main-pr)),
+      calc(100% - var(--edge) - var(--nav-w) - var(--main-pl) - var(--cols-w))); }
+    body:has(#navhide:checked) .topbar { padding-right: max(calc(var(--edge) + var(--main-pr)),
+      calc((100% - var(--main-pl) + var(--main-pr) - var(--cols-w)) / 2)); }
+  }
+  @media (max-width: 1000px) { .topbar { padding: 0 20px; } .rev { display: none; } }
+  @media (max-width: 600px) {
+    .topbar { gap: 8px; }
+    .mode .lbl, .railbtn .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .mode, .railbtn { padding: 0; width: 32px; }
+  }
+  @media (max-width: 520px) { .topbar .pill.status { display: none; } }
+
+  /* Left side: the page's sections; on a site page, the current group's pages (references/site-parts.html).
+     Under 1000 px it folds into the menu button, which opens it as a panel. */
+  nav.toc { position: fixed; top: var(--bar-h); bottom: 0; left: var(--edge); width: var(--nav-w); overflow-y: auto; z-index: 5;
+    padding: 28px 12px 40px 16px; border-right: 1px solid var(--line); background: var(--nav-bg);
+    transition: transform .2s ease, visibility .2s; }
+  nav.toc a { display: block; padding: 5px 10px; margin: 1px 0; border-radius: 6px; color: var(--muted); font-size: 14px; line-height: 20px; }
+  nav.toc a:hover { color: var(--ink); background: var(--surface); }
+  /* Link numbers drawn by CSS. A publishing host can rewrite link text that reads like a web address,
+     such as "1. Overview", so link text holds no period: <span class="lnum" data-n="1."></span>Overview */
+  .lnum::before { content: attr(data-n) " "; }
+  nav.toc .lnum::before { content: attr(data-n); display: inline-block; width: 20px; text-indent: 0; color: var(--faint); font-variant-numeric: tabular-nums; }
+  nav.toc a:has(.lnum) { padding-left: 30px; text-indent: -20px; }
+  nav.toc .group { margin: 22px 10px 6px; font-size: 13px; font-weight: 600; color: var(--ink); }
+  /* The current section's link. The script at the end of the body sets .is-current as the reader scrolls. Without
+     the script, CSS marks the link of the section reached through the nav. For any other section id, add one selector
+     pair to this list: html:not(.js-nav) body:has(#ID:target) nav.toc a[href="#ID"] */
+  nav.toc a.is-current,
+  html:not(.js-nav) body:not(:has(:target)) nav.toc a:first-of-type,
+  html:not(.js-nav) body:has(#top:target) nav.toc a[href="#top"], html:not(.js-nav) body:has(#summary:target) nav.toc a[href="#summary"],
+  html:not(.js-nav) body:has(#s1:target) nav.toc a[href="#s1"], html:not(.js-nav) body:has(#s2:target) nav.toc a[href="#s2"],
+  html:not(.js-nav) body:has(#s3:target) nav.toc a[href="#s3"], html:not(.js-nav) body:has(#s4:target) nav.toc a[href="#s4"],
+  html:not(.js-nav) body:has(#s5:target) nav.toc a[href="#s5"], html:not(.js-nav) body:has(#s6:target) nav.toc a[href="#s6"],
+  html:not(.js-nav) body:has(#s7:target) nav.toc a[href="#s7"], html:not(.js-nav) body:has(#s8:target) nav.toc a[href="#s8"],
+  html:not(.js-nav) body:has(#s9:target) nav.toc a[href="#s9"], html:not(.js-nav) body:has(#differences:target) nav.toc a[href="#differences"],
+  html:not(.js-nav) body:has(#open:target) nav.toc a[href="#open"], html:not(.js-nav) body:has(#terms:target) nav.toc a[href="#terms"],
+  html:not(.js-nav) body:has(#files:target) nav.toc a[href="#files"] {
+    color: var(--indigo); background: var(--indigo-50); font-weight: 500; }
+
+  /* Main column. The left list is fixed; the doc column and the right list share a grid that starts after it. */
+  main { margin: 0 var(--edge) 0 calc(var(--edge) + var(--nav-w)); padding: calc(var(--bar-h) + 48px) var(--main-pr) 96px var(--main-pl);
+    display: grid; grid-template-columns: minmax(0, var(--fig-w)); column-gap: var(--rail-gap); justify-content: start;
+    transition: margin-left .2s ease; }
+  .doc { min-width: 0; grid-column: 1; grid-row: 1; }
+  /* Right side, the rail: on a single page "Figures and tables", one link per figure or key table; on a site page
+     "On this page", the page's sections with their figures and tables under them (references/site-parts.html).
+     From 1200 px it sits beside the doc column; under 1200 px it folds into the bar's switch, which opens it as a panel. */
+  .rail { display: none; position: relative; min-width: 0; }
+  @media (min-width: 1200px) {
+    main:has(> aside.rail) { grid-template-columns: minmax(0, var(--fig-w)) var(--rail-w); }
+    .rail { display: block; grid-column: 2; grid-row: 1; }
+  }
+  /* A list taller than the window scrolls on its own; the script keeps the marked entry in view. */
+  .rail-in { position: sticky; top: calc(var(--bar-h) + 48px); max-height: calc(100vh - var(--bar-h) - 64px); overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: var(--line-2) transparent;
+    background: linear-gradient(var(--line), var(--line)) 0 0 / 1px 100% no-repeat; }
+  .rail-h { margin: 0 0 6px; padding-left: 16px; font-size: 13px; line-height: 20px; font-weight: 600; color: var(--ink); }
+  .rail a { display: block; padding: 4px 4px 4px 16px; color: var(--muted); font-size: 13.5px; line-height: 19px; }
+  .rail a:hover { color: var(--indigo); }
+  .rail a:focus-visible { outline-offset: -2px; }
+  /* The current entry. The script at the end of the body sets .is-current as the reader scrolls. Without the script,
+     CSS marks the entry reached through a link. For any other id in the list, add one selector pair to this list:
+     html:not(.js-nav) body:has(#ID:target) .rail a[href="#ID"] */
+  .rail a.is-current, html:not(.js-nav) body:has(#fig-1:target) .rail a[href="#fig-1"],
+  html:not(.js-nav) body:has(#fig-2:target) .rail a[href="#fig-2"],
+  html:not(.js-nav) body:has(#fig-3:target) .rail a[href="#fig-3"],
+  html:not(.js-nav) body:has(#fig-4:target) .rail a[href="#fig-4"],
+  html:not(.js-nav) body:has(#fig-5:target) .rail a[href="#fig-5"],
+  html:not(.js-nav) body:has(#fig-6:target) .rail a[href="#fig-6"],
+  html:not(.js-nav) body:has(#fig-7:target) .rail a[href="#fig-7"],
+  html:not(.js-nav) body:has(#fig-8:target) .rail a[href="#fig-8"],
+  html:not(.js-nav) body:has(#fig-9:target) .rail a[href="#fig-9"],
+  html:not(.js-nav) body:has(#fig-10:target) .rail a[href="#fig-10"],
+  html:not(.js-nav) body:has(#fig-11:target) .rail a[href="#fig-11"],
+  html:not(.js-nav) body:has(#t-library:target) .rail a[href="#t-library"],
+  html:not(.js-nav) body:has(#t-picks:target) .rail a[href="#t-picks"],
+  html:not(.js-nav) body:has(#t-questions:target) .rail a[href="#t-questions"] { color: var(--indigo); box-shadow: inset 2px 0 0 var(--indigo); }
+  .rail .top { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; }
+  /* From 1001 px the menu switch slides the left list away and centres the page. */
+  @media (min-width: 1001px) {
+    body:has(#navhide:checked) nav.toc { transform: translateX(-100%); visibility: hidden; }
+    body:has(#navhide:checked) main { margin-left: var(--edge); justify-content: center; }
+  }
+  /* Under 1200 px: the right list is a panel at the right, closed until its switch in the bar opens it. */
+  @media (max-width: 1199px) {
+    .rail { position: fixed; z-index: 6; top: calc(var(--bar-h) + 8px); right: 12px; width: min(320px, calc(100vw - 24px));
+      max-height: calc(100vh - var(--bar-h) - 20px); overflow-y: auto; padding: 14px 12px 12px 0;
+      border: 1px solid var(--line-2); border-radius: 10px; background: var(--raised); box-shadow: var(--shadow-panel); }
+    body:has(#railshow:checked) .rail { display: block; }
+    .rail-in { position: static; max-height: none; overflow: visible; background: none; }
+  }
+  /* Under 1000 px: the left list is a panel at the left, closed until the menu switch opens it. With both panels open,
+     each takes half the window, and a solid veil hides the page between them. */
+  @media (max-width: 1000px) {
+    nav.toc { display: none; position: fixed; z-index: 6; top: calc(var(--bar-h) + 8px); bottom: auto; left: 12px;
+      width: min(300px, calc(100vw - 24px)); max-height: calc(100vh - var(--bar-h) - 20px); padding: 16px 12px;
+      border: 1px solid var(--line-2); border-radius: 10px; background: var(--raised); box-shadow: var(--shadow-panel); transition: none; }
+    body:has(#navhide:checked) nav.toc { display: block; }
+    body:has(#navhide:checked):has(#railshow:checked) nav.toc, body:has(#navhide:checked):has(#railshow:checked) .rail {
+      width: calc(50vw - 18px); }
+    body:has(#navhide:checked):has(#railshow:checked)::after { content: ""; position: fixed; z-index: 5; inset: var(--bar-h) 0 0 0;
+      background: var(--bg); pointer-events: none; }
+    main { margin: 0; padding: calc(var(--bar-h) + 32px) 20px 80px; display: block; }
+    /* Closed shows the menu icon and label; open shows a chevron that points up. */
+    .navtoggle { padding: 0 12px; }
+    .navtoggle .to-hide { display: none; }
+    .navtoggle .to-show { display: inline-flex; }
+    body:has(#navhide:checked) .navtoggle { padding: 0; color: var(--indigo); background: var(--indigo-50); border-color: var(--note-bd); }
+    body:has(#navhide:checked) .navtoggle .to-hide { display: inline-flex; }
+    body:has(#navhide:checked) .navtoggle .to-show { display: none; }
+    .navtoggle .chev { margin: 4px 0 0; transform: rotate(135deg); }
+  }
+  @media (max-width: 600px) {
+    .navtoggle .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .navtoggle { padding: 0; width: 32px; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } nav.toc, main { transition: none; } }
+  @media print { .topbar, nav.toc, .rail { display: none; } main { margin: 0; padding: 0; display: block; } }
+
+  /* Widths: figures and wide parts use the whole doc column; everything else stops at --doc-w, and prose lines at
+     35em, under the 80 characters the text report allows. A table that needs the width takes class="wide". */
+  :where(.doc > :not(section), .doc > section > *) { max-width: var(--doc-w); }
+  .doc figure, .doc table.wide, .doc .wide, .doc .stacks, .doc .srcmap, .doc .anatomy, .doc .samples { max-width: none; }
+  main p, main li, main dd, footer, .q { max-width: 35em; }
+  main p, main li { text-wrap: pretty; }
+  .callout { max-width: calc(35em + 40px); }
+  /* Keeps an evidence chip on the line with the word before it: <span class="keep">word <span class="ev obs">Observed</span></span> */
+  .keep { white-space: nowrap; }
+  p { margin: 0 0 16px; }
+  ul, ol { padding-left: 22px; margin: 0 0 18px; }
+  li { margin: 0 0 8px; }
+  li::marker { color: var(--faint); }
+  ul.tight li { margin-bottom: 4px; }
+  .muted { color: var(--muted); font-size: 14px; }
+
+  /* Page header */
+  .card { min-width: 0; }
+  header.hero { padding: 0 0 32px; }
+  .kicker { font-size: 14px; font-weight: 500; color: var(--indigo); margin: 0 0 10px; }
+  h1 { margin: 0 0 12px; font: 600 38px/1.15 "Segoe UI Variable Display", "Segoe UI", sans-serif; letter-spacing: -.02em; color: var(--ink); }
+  .subtitle { margin: 0 0 20px; font-size: 19px; line-height: 1.55; color: var(--muted); max-width: 33em; }
+  .subtitle code { font-size: .8em; }
+  header.hero img { display: block; width: 100%; aspect-ratio: 3 / 1; height: auto; object-fit: cover; margin: 28px 0 0;
+    border: 1px solid var(--line); border-radius: 10px; }
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 28px; }
+  .pill { display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px; border-radius: 999px;
+    font-size: 13px; font-weight: 500; border: 1px solid; }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pill.ok { color: var(--green); background: var(--green-50); border-color: var(--green-bd); }
+  .pill.warn { color: var(--amber); background: var(--amber-50); border-color: var(--warn-bd); }
+  .pill.stop { color: var(--red); background: var(--red-50); border-color: var(--stop-bd); }
+  .pill.info { color: var(--violet); background: var(--violet-50); border-color: var(--violet-bd); }
+  .meta { display: grid; grid-template-columns: repeat(4, auto); justify-content: start; gap: 4px 48px; margin: 0;
+    padding: 18px 0 0; border-top: 1px solid var(--line); }
+  .meta div { min-width: 0; }
+  .meta dt { font-size: 13px; color: var(--faint); margin-bottom: 2px; }
+  .meta dd { margin: 0; font-size: 14px; font-weight: 500; color: var(--ink); }
+  @media (max-width: 700px) { .meta { grid-template-columns: 1fr 1fr; } }
+  /* "Who this is for" and "Source described": one panel, two labelled rows */
+  .grid2 > .card { display: grid; grid-template-columns: 168px minmax(0, 1fr); column-gap: 24px; padding: 22px 0 6px; }
+  .grid2 > .card + .card { border-top: 1px solid var(--line); }
+  .grid2 .kicker { grid-row: 1 / span 3; color: var(--ink); font-weight: 600; font-size: 14px; margin: 0; padding-top: 4px; }
+  .grid2 p, .grid2 ul { grid-column: 2; font-size: 15px; line-height: 1.65; max-width: 34em; }
+  .grid2 li { max-width: none; margin-bottom: 6px; }
+  @media (max-width: 700px) { .grid2 > .card { grid-template-columns: 1fr; } .grid2 .kicker, .grid2 p, .grid2 ul { grid-column: 1; grid-row: auto; } }
+  /* Summary cards: one link per main part, with or without a small image */
+  .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 32px 0 0; }
+  .summary-cards a { display: flex; gap: 12px; align-items: flex-start; align-content: flex-start; padding: 12px 14px; border: 1px solid var(--line);
+    border-radius: 10px; background: var(--raised); color: var(--ink); box-shadow: var(--shadow-card); }
+  .summary-cards a:hover { border-color: var(--rule); text-decoration: none; }
+  .summary-cards img { flex: none; width: 48px; height: 48px; border-radius: 8px; object-fit: cover; }
+  .summary-cards b { display: block; font-size: 15px; line-height: 1.4; }
+  .summary-cards a > div { align-self: flex-start; margin: 0; }  /* titles stay level whatever the description length */
+  .summary-cards span { display: block; color: var(--muted); font-size: 13px; line-height: 1.4; }
+
+  /* Sections: a rule above each, no boxes */
+  main section { margin: 56px 0 0; padding: 40px 0 0; border-top: 1px solid var(--line); }
+  main section.grid2 { max-width: var(--doc-w); margin: 0; padding: 0; }
+  h2 { margin: 0 0 6px; font: 600 26px/1.3 "Segoe UI Variable Display", "Segoe UI", sans-serif; letter-spacing: -.015em; color: var(--ink); }
+  h2 .hn { color: var(--faint); font-weight: 500; margin-right: 4px; }
+  #summary h2 { margin-bottom: 16px; }
+  .q { margin: 0 0 24px; font-size: 17px; line-height: 1.6; color: var(--muted); }
+  h3 { margin: 36px 0 12px; font: 600 19px/1.35 "Segoe UI Variable Display", "Segoe UI", sans-serif; color: var(--ink); }
+  h4 { color: var(--ink); }
+
+  /* Evidence chips and tags: four hues, never the accent alone */
+  .ev { display: inline-block; margin-left: 2px; padding: 0 7px; border-radius: 999px; font-size: 12px; line-height: 19px;
+    font-weight: 600; vertical-align: 1px; white-space: nowrap; border: 1px solid transparent; }
+  .ev.obs { color: var(--green); background: var(--green-50); border-color: var(--green-bd); }
+  .ev.mea { color: var(--blue); background: var(--blue-50); }
+  .ev.pro { color: var(--violet); background: var(--violet-50); border-style: dashed; border-color: var(--violet); }
+  .ev.asm { color: var(--amber); background: var(--amber-50); border-color: var(--warn-bd); }
+  .tag { display: inline-block; padding: 0 6px; border-radius: 4px; font-size: 12px; font-weight: 600; letter-spacing: .02em; border: 1px solid; }
+  .tag.new { color: var(--on-accent); background: var(--indigo); border-color: var(--indigo); }
+  .tag.mod { color: var(--teal); background: var(--teal-50); border-style: dashed; }
+  .tag.ex { color: var(--grey); background: var(--grey-50); border-color: var(--line-2); }
+  .tag.closed { color: var(--red); background: var(--red-50); }
+  .tag.open { color: var(--green); background: var(--green-50); }
+  /* A neutral scope chip, not a tag: <span class="scope">Within one request</span> */
+  .scope { display: inline-block; padding: 0 8px; border-radius: 999px; font-size: 12.5px; color: var(--muted); background: var(--grey-50); border: 1px solid var(--line-2); }
+
+  /* Tables: bold header over a dark rule, light row rules, no fills */
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 20px; font-size: 14.5px; line-height: 1.55; }
+  th { text-align: left; vertical-align: bottom; font-size: 13px; font-weight: 600; color: var(--ink); padding: 0 16px 10px 0; border-bottom: 1px solid var(--rule); }
+  td { text-align: left; vertical-align: top; padding: 12px 16px 12px 0; border-bottom: 1px solid var(--line); color: var(--text); }
+  th:last-child, td:last-child { padding-right: 0; }
+  td:first-child { color: var(--ink); font-weight: 500; }
+  td:first-child code { font-weight: 400; }
+
+  /* Code: a bare pre is a light block whose long lines wrap. class="nowrap" keeps lines whole and scrolls, with a
+     shadow at the edge that has more. A .codeblock adds a header naming the file or format. */
+  pre { margin: 0 0 24px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--pre-bg);
+    font: 13px/1.65 "Cascadia Mono", "Cascadia Code", Consolas, monospace; color: var(--pre-ink); font-variant-ligatures: none;
+    white-space: pre-wrap; overflow-wrap: anywhere; }
+  pre code { background: none; border: 0; padding: 0; font-size: inherit; color: inherit; white-space: inherit; }
+  .codeblock { margin: 8px 0 24px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--pre-bg); }
+  .code-head { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-bottom: 1px solid var(--line);
+    background: var(--code-head); font-size: 13px; color: var(--muted); }
+  .code-head .mono { font-size: 13px; color: var(--ink); }
+  .code-head .lang { margin-left: auto; }
+  .codeblock pre { margin: 0; border: 0; border-radius: 0; background: none; }
+  /* pre.nowrap and .tscroll scroll sideways, with a shadow at an edge that hides more. --cue-bg is the colour behind them. */
+  /* The shadow mixes --ink into the background, so it reads in day and night; scrollbar-color keeps a real browser's bar visible. */
+  pre.nowrap, .tscroll { --cue-bg: var(--pre-bg); --cue: color-mix(in srgb, var(--ink) 30%, transparent); overflow-x: auto;
+    scrollbar-width: thin; scrollbar-color: var(--faint) transparent;
+    background: linear-gradient(to right, var(--cue-bg) 30%, transparent) left / 48px 100% no-repeat local,
+      linear-gradient(to left, var(--cue-bg) 30%, transparent) right / 48px 100% no-repeat local,
+      linear-gradient(to right, var(--cue), transparent) left / 16px 100% no-repeat scroll,
+      linear-gradient(to left, var(--cue), transparent) right / 16px 100% no-repeat scroll, var(--cue-bg); }
+  pre.nowrap { white-space: pre; overflow-wrap: normal; }
+  /* A table whose code is wider than its column: inline code never breaks, so the table scrolls inside this wrapper.
+     A plain tscroll table fits whenever its code fits; only a wide one keeps prose columns readable while it scrolls. */
+  .tscroll { --cue-bg: var(--bg); margin: 8px 0 20px; }
+  .tscroll > table { margin: 0; }
+  .tscroll.wide td:not(:has(code)) { min-width: 12em; }
+  .tk-h { color: var(--tk-h); font-weight: 600; } .tk-c { color: var(--tk-c); } .tk-n { color: var(--tk-n); }
+  .tk-k { color: var(--tk-k); } .tk-s { color: var(--tk-s); }
+
+  /* Walkthrough under a figure: numbers match the figure's markers */
+  ol.circled { list-style: none; padding: 0; margin: 0 0 8px; }
+  ol.circled > li { position: relative; padding-left: 40px; margin: 0 0 14px; }
+  ol.circled > li > .n { position: absolute; left: 0; top: 2px; width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; background: var(--indigo); color: var(--on-accent); font-size: 12.5px; font-weight: 600; }
+  /* Numbered steps */
+  ol.steps { counter-reset: s; list-style: none; padding-left: 0; }
+  ol.steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 0 0 14px; }
+  ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; background: var(--indigo-50); border: 1px solid var(--note-bd);
+    color: var(--indigo); font-size: 12.5px; font-weight: 600; }
+
+  /* Callouts: 1 px bordered boxes with a coloured heading */
+  .callout { margin: 0 0 24px; padding: 14px 18px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface);
+    font-size: 15px; line-height: 1.65; }
+  .callout > b:first-child { display: block; margin-bottom: 4px; font-weight: 600; }
+  .callout pre { --cue-bg: var(--bg); margin: 8px 0; background-color: var(--bg); }
+  .callout.note { border-color: var(--note-bd); background: var(--indigo-50); }
+  .callout.note > b:first-child { color: var(--indigo); }
+  .callout.warn { border-color: var(--warn-bd); background: var(--amber-50); }
+  .callout.warn > b:first-child { color: var(--amber); }
+  .callout.stop { border-color: var(--stop-bd); background: var(--red-50); }
+  .callout.stop > b:first-child { color: var(--red); }
+  .callout.var { border-color: var(--var-bd); background: var(--teal-50); }
+  .callout.var > b:first-child { color: var(--teal); }
+
+  /* Disclosure rows, as in the file map */
+  details { border-bottom: 1px solid var(--line); }
+  details:first-of-type { border-top: 1px solid var(--line); margin-top: 8px; }
+  summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 12px 0;
+    font-weight: 600; color: var(--ink); font-size: 15px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: ""; flex: none; width: 6px; height: 6px; margin: 0 4px 0 2px; border-right: 1.5px solid var(--faint);
+    border-bottom: 1.5px solid var(--faint); transform: rotate(-45deg); transition: transform .15s ease; }
+  details[open] summary::before { transform: rotate(45deg); }
+  details p { margin: 0 0 14px 22px; font-size: 15px; }
+  @media (prefers-reduced-motion: reduce) { summary::before { transition: none; } }
+
+  footer { margin: 56px 0 0; padding: 24px 0 0; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.75; color: var(--muted); max-width: 37em; }
+  footer .ev { margin: 0 2px 0 4px; }
+
+  /* Figures: a light panel with a faint dot grid, white nodes, 1.5 px strokes. Colours come from variables so figures
+     follow night mode. Inside an SVG, put any extra colour in style="fill:var(--x)"; a presentation attribute such as
+     fill="#..." ignores night mode. Text sizes are SVG units: a 1140-unit viewBox shows about 954 px wide at 1366,
+     so 14.5 units renders at about 12.1 px. */
+  figure { margin: 28px 0; }
+  figure svg { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px;
+    background: radial-gradient(circle, var(--fig-dot) 1px, transparent 1.4px) 0 0 / 16px 16px, var(--figbg); }
+  figcaption { margin-top: 12px; font-size: 14px; line-height: 1.6; color: var(--muted); max-width: 33em; }
+  .sv-lane1 { fill: var(--lane1); } .sv-lane2 { fill: var(--lane2); } .sv-lane3 { fill: var(--lane3); }
+  .sv-lanelabel, .sv-label { font: 600 15px "Segoe UI Variable Text", "Segoe UI", sans-serif; fill: var(--muted); }
+  .sv-panel { fill: var(--lane3); stroke: var(--line-2); stroke-width: 1.5; }
+  .sv-folder { fill: var(--card); stroke: var(--sv-ex); stroke-width: 1.5; }
+  .sv-box { fill: var(--card); stroke-width: 1.5; }
+  .sv-new { stroke: var(--indigo); } .sv-box.sv-new { stroke-width: 2; }
+  .sv-mod { stroke: var(--teal); stroke-dasharray: 7 4; } .sv-ex { stroke: var(--sv-ex); }
+  .sv-shadow { fill: var(--node-shadow); }
+  .sv-rowrule { stroke: var(--line); stroke-width: 1.5; }
+  .sv-icon { fill: none; stroke: var(--faint); stroke-width: 1.5; stroke-linejoin: round; }
+  .sv-t { font: 600 16.5px "Segoe UI Variable Text", "Segoe UI", sans-serif; fill: var(--ink); }
+  .sv-s { font: 15px "Segoe UI Variable Text", "Segoe UI", sans-serif; fill: var(--muted); }
+  .sv-xs { font: 14.5px "Segoe UI Variable Text", "Segoe UI", sans-serif; fill: var(--muted); }
+  .sv-mono { font: 14.5px "Cascadia Mono", "Cascadia Code", Consolas, monospace; fill: var(--ink); font-variant-ligatures: none; }
+  .sv-cls { font: 14.5px "Cascadia Mono", "Cascadia Code", Consolas, monospace; fill: var(--faint); font-variant-ligatures: none; }
+  .sv-arrow { stroke: var(--sv-arrow); stroke-width: 1.5; fill: none; }
+  .sv-arrow-red { stroke: var(--red); stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+  .sv-head { fill: var(--sv-arrow); } .sv-head-red { fill: var(--red); }
+  .sv-numc { fill: var(--indigo); stroke: var(--figbg); stroke-width: 3; }
+  .sv-numt { font: 600 14.5px "Segoe UI Variable Text", "Segoe UI", sans-serif; fill: var(--on-accent); text-anchor: middle; }
+  .sv-chip { fill: var(--indigo-50); stroke: var(--chip-indigo-bd); } .sv-chip-teal { fill: var(--teal-50); stroke: var(--chip-teal-bd); }
+  .sv-chip-grey { fill: var(--grey-50); stroke: var(--chip-grey-bd); }
+  .sv-chipt { font: 600 14.5px "Segoe UI Variable Text", "Segoe UI", sans-serif; fill: var(--indigo); text-anchor: middle; }
+  .sv-chipt.teal { fill: var(--teal); } .sv-chipt.red { fill: var(--red); } .sv-chipt.amber { fill: var(--amber); } .sv-chipt.grey { fill: var(--muted); }
+  .sv-red { fill: var(--red-50); stroke: var(--stop-bd); stroke-width: 1.5; } .sv-amber { fill: var(--amber-50); stroke: var(--warn-bd); stroke-width: 1.5; }
+  .sv-row { fill: var(--th); stroke: var(--line); }
+  .sv-rule { stroke: var(--line-2); stroke-width: 1.2; fill: none; }
+  .sv-dash { stroke: var(--teal); stroke-width: 1.5; stroke-dasharray: 7 5; }
+  .sv-guard { font: 14.5px "Segoe UI Variable Text", "Segoe UI", sans-serif; fill: var(--sv-guard); }
+  /* Comparison blocks in SVG: unchanged, new, first difference, recomputed (fill="url(#hatch-id)") */
+  .bk-same { fill: var(--same-bg); stroke: var(--same-bd); stroke-width: 1.5; }
+  .bk-new { fill: var(--indigo-50); stroke: var(--indigo); stroke-width: 1.5; }
+  .bk-diff { fill: var(--red-50); stroke: var(--red); stroke-width: 2; }
+  .bk-re { stroke: var(--re-bd); stroke-width: 1.5; }
+  /* Colour keys: the full key once near the top, a mini key under each figure with only the colours it uses */
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+  .sw { display: inline-block; width: 16px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1.5px solid; }
+  .mini-legend { font-size: 13px; gap: 4px 16px; margin: 8px 0 0; }
+  /* HTML message stacks (references/svg-patterns.md, "HTML stack pattern").
+     --n on .stacks counts the caption plus the rows of the tallest column; too small and the last row disappears. */
+  .stacks { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); grid-template-rows: repeat(var(--n), auto); gap: 8px 12px;
+    margin: 10px 0 2px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--figbg); }
+  .stack { display: grid; grid-row: 1 / -1; grid-template-rows: subgrid; min-width: 0; }
+  .stack .cap { font-size: 13px; font-weight: 600; color: var(--muted); align-self: end; }
+  .msg { position: relative; display: flex; align-items: center; min-height: 32px; padding: 4px 8px; border-radius: 6px; border-width: 1.5px;
+    border-style: solid; font-size: 14px; line-height: 1.25; color: var(--ink); }
+  .msg .r { flex: none; width: 72px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--muted); }
+  .msg.same, .sw.same { background: var(--same-bg); border-color: var(--same-bd); }
+  .msg.new, .sw.new { background: var(--indigo-50); border-color: var(--indigo); }
+  .msg.diff, .sw.diff { background: var(--red-50); border-color: var(--red); color: var(--red); font-weight: 600; }
+  .msg.re, .sw.re { background: repeating-linear-gradient(45deg, var(--re-a) 0 6px, var(--re-b) 6px 8px); border-color: var(--re-bd); }
+  .msg.diff .r { color: var(--red); }
+  .msg.diff::after { content: "first difference"; position: absolute; top: 0; right: 8px; transform: translateY(-55%); background: var(--flag-bg);
+    border: 1px solid var(--red); border-radius: 999px; padding: 0 7px; font-size: 12px; line-height: 16px; font-weight: 600; }
+  .strip-note { font-size: 14px; color: var(--muted); margin: 8px 0 12px; }
+  /* Chips in HTML figures: an identity or source (default), new, changed, lost, and an open question.
+     An open-question chip is a link to its row in the open questions table: <a class="chip oq" href="#open">open question 2</a> */
+  .chip { display: inline-block; font: 500 12.5px/1.55 "Cascadia Mono", "Cascadia Code", Consolas, monospace; font-variant-ligatures: none;
+    padding: 0 7px; border-radius: 999px; border: 1.5px solid var(--sv-ex); color: var(--muted); background: var(--chip-bg); white-space: nowrap; text-decoration: none; }
+  .chip.new { border-color: var(--indigo); color: var(--indigo); background: var(--indigo-50); }
+  .chip.mod { border-style: dashed; border-color: var(--teal); color: var(--teal); background: var(--teal-50); }
+  .chip.lost { border-color: var(--red); color: var(--red); background: var(--red-50); }
+  .chip.oq { border-color: var(--warn-bd); color: var(--amber); background: var(--amber-50); font-family: "Segoe UI", sans-serif; }
+  .sw.chip { border-color: var(--sv-ex); background: var(--chip-bg); border-radius: 7px; }
+  /* Source beside output (references/svg-patterns.md, pattern 7): the source on the left, what it renders on the right */
+  .srcmap { display: grid; grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1.3fr); gap: 10px 0; margin: 12px 0 4px; }
+  .srcmap .hd { font-size: 13px; font-weight: 600; color: var(--ink); padding-bottom: 6px; border-bottom: 1px solid var(--rule); align-self: end; }
+  .srcmap .src { display: flex; flex-direction: column; justify-content: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--pre-bg); font: 13px/1.45 "Cascadia Mono", "Cascadia Code", Consolas, monospace; font-variant-ligatures: none; color: var(--ink); overflow-wrap: anywhere; }
+  .srcmap .who { font: 13px/1.4 "Segoe UI", sans-serif; color: var(--muted); margin-top: 3px; }
+  .srcmap .cls, .anatomy .cls { display: block; font: 12.5px "Cascadia Mono", "Cascadia Code", Consolas, monospace; font-variant-ligatures: none; color: var(--faint); overflow-wrap: anywhere; }
+  .srcmap .lk { position: relative; min-height: 30px; }
+  .srcmap .lk::before { content: ""; position: absolute; left: 4px; right: 8px; top: 50%; border-top: 1.5px solid var(--sv-arrow); }
+  .srcmap .lk::after { content: ""; position: absolute; right: 3px; top: calc(50% - 5px); border: 5px solid transparent; border-left: 9px solid var(--sv-arrow); border-right: 0; }
+  .srcmap .lk .n, .anatomy .kn { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--indigo); color: var(--on-accent); font-size: 12.5px; font-weight: 600; box-shadow: 0 0 0 3px var(--bg); }
+  .srcmap .lk .n { position: absolute; left: 50%; top: 50%; transform: translate(-62%, -50%); }
+  .srcmap .outs { display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 0; }
+  .srcmap .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+  .srcmap .row .chip { white-space: normal; overflow-wrap: anywhere; border-radius: 8px; }
+  .srcmap .none { font-size: 14px; color: var(--muted); font-style: italic; padding: 4px 2px; }
+  @media (max-width: 1100px) { .srcmap { grid-template-columns: 1fr; } .srcmap .lk { display: none; } }
+  /* Wrapper anatomy (references/svg-patterns.md, pattern 12): stages left to right, each a card, arrows drawn by CSS */
+  .anatomy { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: 12px 40px; margin: 10px 0 4px; }
+  .anatomy .step { position: relative; min-width: 0; padding: 10px 10px 12px; border: 1.5px solid var(--sv-ex); border-radius: 10px; background: var(--card); }
+  .anatomy .step.new { border-color: var(--indigo); border-width: 2px; }
+  .anatomy .step.mod { border-style: dashed; border-color: var(--teal); }
+  .anatomy .step + .step::before { content: ""; position: absolute; left: -36px; width: 30px; top: 50%; border-top: 1.5px solid var(--sv-arrow); }
+  .anatomy .step + .step::after { content: ""; position: absolute; left: -10px; top: calc(50% - 5px); border: 5px solid transparent; border-left: 8px solid var(--sv-arrow); border-right: 0; }
+  .anatomy .kn { position: absolute; left: -32px; top: calc(50% + 8px); }
+  .anatomy h4 { margin: 0 0 2px; font-size: 15px; }
+  .anatomy .role { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+  .anatomy .cls { margin: -4px 0 8px; }
+  .anatomy .lbl { margin: 6px 0 3px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  .anatomy .js { margin: 0 0 6px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--pre-bg);
+    font: 12.5px/1.45 "Cascadia Mono", "Cascadia Code", Consolas, monospace; font-variant-ligatures: none; color: var(--ink); overflow-wrap: anywhere; }
+  .anatomy .obj { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; padding: 4px 7px; border: 1.5px solid var(--sv-ex); border-radius: 6px; font-size: 13.5px; }
+  .anatomy .obj .t { flex: 1 1 auto; min-width: 0; }
+  .anatomy .nid { font-size: 12.5px; color: var(--faint); font-style: italic; }
+  @media (max-width: 1100px) { .anatomy { grid-template-columns: 1fr 1fr; } .anatomy .step::before, .anatomy .step::after { display: none; }
+    .anatomy .kn { position: static; margin: 0 0 4px; } }
+
+  /* Night: its own palette, not an inversion. Near-black page, surfaces a step up, grey body, off-white headings. */
+  body:has(#night:checked) {
+    color-scheme: dark;
+    --bg: #0b0c0e; --surface: #131417; --raised: #16171a; --card: #18191c; --nav-bg: #0b0c0e;
+    --ink: #f1f1f3; --text: #c6c7cd; --muted: #9a9ba4; --faint: #868791; --line: #1f2024; --line-2: #2c2d33; --rule: #45464e;
+    --indigo: #a3a4ff; --indigo-50: #1a1b33; --note-bd: #34366a; --on-accent: #0b0c0e; --ring: #7d7ff0;
+    --teal: #6fd6c8; --teal-50: #0f2321; --var-bd: #1f4a45; --amber: #e8b866; --amber-50: #241b0c; --warn-bd: #4d3a17;
+    --red: #f4978e; --red-50: #2c1514; --stop-bd: #5a2a27; --green: #74d39a; --green-50: #0f2117; --green-bd: #1f4a30;
+    --violet: #c3a6ff; --violet-50: #1d1633; --violet-bd: #3a2a66; --blue: #86b4ff; --blue-50: #111d33;
+    --grey: #a7a8b0; --grey-50: #1a1b1f; --th: #141518;
+    --pre-bg: #0f1012; --pre-ink: #d7d8de; --code-head: #141518; --code-chip: #17181b;
+    --tk-h: #f1f1f3; --tk-c: #868791; --tk-n: #7fb6ff; --tk-k: #d29bff; --tk-s: #6fd3a2;
+    --figbg: #0f1012; --fig-dot: #1e1f24; --lane1: #15162a; --lane2: #0f1f1d; --lane3: #131417;
+    --sv-ex: #5a5b64; --sv-arrow: #8b8c96; --sv-guard: #c6c7cd; --node-shadow: #0b0c0e;
+    --chip-bg: #18191c; --flag-bg: #18191c; --chip-indigo-bd: #34366a; --chip-teal-bd: #1f4a45; --chip-grey-bd: #2c2d33;
+    --same-bg: #1a1b1f; --same-bd: #5a5b64; --re-a: #2c1a1a; --re-b: #4b2b30; --re-bd: #a5625b;
+    --hatch-bg: #2c1a1a; --hatch-line: #51302f;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, .5); --shadow-btn: 0 1px 2px rgba(0, 0, 0, .5); --shadow-panel: 0 8px 28px rgba(0, 0, 0, .6);
+  }
+  body:has(#night:checked) code { border-color: var(--line-2); }
+  /* The right list's entries use the body text colour at night, so they are not dim against the dark ground. */
+  body:has(#night:checked) .rail a:not(.is-current, .top) { color: var(--text); }
+  body:has(#night:checked) header.hero img, body:has(#night:checked) .summary-cards img { filter: brightness(.8); }
+  .asks { margin: 24px 0 4px; padding: 16px 18px; border: 1px solid var(--note-bd); border-radius: 10px; background: var(--indigo-50); }
+  .asks > b { display: block; margin-bottom: 10px; font-size: 15px; font-weight: 600; color: var(--indigo); }
+  .asks-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .asks-grid a { display: block; background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px; color: var(--ink); text-decoration: none; font-size: 14px; line-height: 1.45; box-shadow: var(--shadow-card); }
+  .asks-grid a:hover { border-color: var(--indigo); text-decoration: none; }
+  .asks-grid a b { display: block; color: var(--indigo); font-weight: 600; margin-bottom: 2px; }
+  .src-line { color: var(--muted); font-size: 14px; margin: 16px 0 0; }
+  .samples { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 12px 0 8px; }
+  .samples.pair { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 1100px) { .samples, .samples.pair { grid-template-columns: 1fr; } }
+  .sample-step { min-width: 0; background: var(--card); border: 1px solid var(--line); border-top: 2px solid var(--indigo); border-radius: 10px; padding: 12px 14px; }
+  .sample-step.before { border-top-color: var(--grey); }
+  .sample-step.after { border-top-color: var(--indigo); }
+  .sample-step h4 { display: flex; align-items: center; margin: 0 0 8px; font-size: 14.5px; font-weight: 600; }
+  .sample-step p { margin: 8px 0 0; font-size: 14px; }
+  .sample-step .fnum { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 22px; height: 22px;
+    margin-right: 8px; border-radius: 50%; background: var(--indigo); color: var(--on-accent); font-size: 12px; font-weight: 600; }
+  pre.sample { background: var(--pre-bg); color: var(--pre-ink); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px; margin: 6px 0 0; font: 12.5px/1.55 "Cascadia Mono", "Cascadia Code", Consolas, "SFMono-Regular", monospace;
+    font-variant-ligatures: none; white-space: pre-wrap; overflow-wrap: anywhere; }
+  pre.sample mark { background: var(--indigo-50); color: var(--indigo); font-weight: 600; border-radius: 3px; }
+  pre.sample del { color: var(--red); }
+  pre.sample.nowrap { white-space: pre; overflow-wrap: normal; }
+  .sample-note { color: var(--muted); font-size: 13px; margin: 6px 0 16px; }
+  details.impl { border: 1px solid var(--line); border-radius: 10px; padding: 0 18px; margin-top: 8px; background: var(--surface); }
+  details.impl > summary { font-weight: 600; }
+  details.impl p { margin-left: 0; }
+  details.impl[open] { padding-bottom: 8px; }
+  /* This page: the per-screen strips (today, nearest vanilla, mockup A, mockup B), figure 3's boxed capture, the
+     markers, the facts and picks tables and the narrow-screen rules. Every colour is a template variable. Rules for
+     figures copied from the concept sketches start with figure#fig-N so they win over the copied CSS that follows. */
+  :root { --img-bd: var(--line-2); }
+  body:has(#night:checked) { --img-bd: var(--rule); }
+  .doc img { border: 1px solid var(--img-bd); }
+  .strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 14px; padding: 12px; align-items: start;
+    border: 1px solid var(--line); border-radius: 10px; background: var(--figbg); }
+  .strip.pair { margin-top: 12px; }
+  .slot { min-width: 0; }
+  .colh { display: flex; flex-direction: column; margin: 0 0 8px; padding: 0 0 6px; border-bottom: 2px solid var(--line-2); }
+  .colh b { font-size: 15px; line-height: 1.35; }
+  .colh span { font-size: 13px; line-height: 1.4; color: var(--muted); }
+  .colh.v { border-bottom-color: var(--grey); }
+  .colh.a { border-bottom-color: var(--teal); }
+  .colh.b { border-bottom-color: var(--indigo); }
+  a.shot { display: block; border-radius: 4px; }
+  a.shot .pic { position: relative; display: block; }
+  a.shot img { display: block; width: 100%; height: auto; border-radius: 4px; }
+  .strip.pair a.shot .pic { display: block; width: fit-content; max-width: 100%; }
+  .strip.pair a.shot img { width: auto; max-width: 100%; }
+  a.shot:hover img { outline: 2px solid var(--indigo); outline-offset: 2px; }
+  a.shot .open { display: inline-flex; align-items: center; min-height: 28px; margin-top: 4px; font-size: 13px; color: var(--indigo);
+    text-decoration: underline; text-underline-offset: 2px; }
+  a.shot .open::after { content: "\2197"; margin-left: 4px; text-decoration: none; }
+  span.mk { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 50%; background: var(--indigo); color: var(--on-accent); font-size: 13px; font-weight: 600;
+    line-height: 1; box-shadow: 0 0 0 2px var(--figbg); }
+  .colh span.mk { position: static; transform: none; display: inline-flex; margin-left: 8px; vertical-align: 1px;
+    color: var(--on-accent); font-size: 13px; }
+  .ph { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; min-height: 180px;
+    padding: 14px; border: 2px dashed var(--rule); border-radius: 6px; background: var(--surface); text-align: center;
+    font-size: 13.5px; line-height: 1.45; color: var(--muted); }
+  .ph b { font-size: 14px; color: var(--ink); }
+  .tap { font-size: 13.5px; color: var(--muted); margin: 0 0 8px; }
+  ul.walk { margin: 10px 0 14px; }
+  table.facts th { width: 9em; }
+  table.facts th, table.facts td, table.picks th, table.picks td { vertical-align: top; }
+  table.facts th, table.facts td { vertical-align: baseline; }
+  .also { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px 22px; padding: 0; list-style: none; }
+  .also a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border: 1px solid var(--line-2);
+    border-radius: 8px; font-size: 14px; }
+  table.picks td.th { width: 22%; padding: 6px; }
+  table.picks td.th img { display: block; width: 100%; height: auto; border-radius: 4px; }
+  table.picks th a, table.picks td a { display: inline-block; min-height: 24px; }
+  table.picks td.pk { white-space: nowrap; }
+  table.picks td:last-child { min-width: 6.5em; }
+  table.picks tr.nat > * { vertical-align: baseline; }
+  table.picks td.th a.shot .open { font-size: 12.5px; }
+  .callout.plan { border-style: dashed; }
+  /* Figure 3: the capture with its ten boxes and markers, the list, mockup A; one column on narrow screens. */
+  figure#fig-3 .f3 { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 0.9fr); gap: 16px;
+    padding: 12px; align-items: start; border: 1px solid var(--line); border-radius: 10px; background: var(--figbg); }
+  figure#fig-3 .bx { position: absolute; border: 2px solid var(--red); border-radius: 2px; pointer-events: none; }
+  figure#fig-3 .f3list { margin: 0; padding: 0; list-style: none; }
+  figure#fig-3 .f3list li { display: grid; grid-template-columns: 30px minmax(0, 1fr); column-gap: 6px; margin: 0 0 10px;
+    font-size: 14px; line-height: 1.4; }
+  figure#fig-3 .f3list .n { grid-row: span 3; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px;
+    border-radius: 50%; background: var(--indigo); color: var(--on-accent); font-size: 13px; font-weight: 600; }
+  figure#fig-3 .f3list .was { font-weight: 600; color: var(--ink); }
+  figure#fig-3 .f3list .now { color: var(--teal); }
+  figure#fig-3 .f3list .tc { color: var(--amber); font-size: 13px; }
+  /* Figure 1: the touch cards in two columns, then one, on narrow screens; chips wrap instead of clipping. */
+  figure#fig-1 .chip { white-space: normal; }
+  figure#fig-1 .touch div.pic { height: 190px; padding: 4px 6px 0; }
+  figure#fig-1 .touch div.pic a.shot { display: flex; flex-direction: column; align-items: center; }
+  figure#fig-1 .touch div.pic span.pic { display: block; height: auto; background: none; border: 0; }
+  /* Figure 2: each token sheet at the full column width. */
+  figure#fig-2 .tokens { grid-template-columns: minmax(0, 1fr); }
+  figure#fig-2 a.shot { text-align: center; }
+  /* Figure 4: the skin column set apart from the six scores; 0 and 1 told apart by fill and border in both modes;
+     the header pinned under the top bar on wide screens. */
+  figure#fig-4 .heat td.lk, figure#fig-4 .heat .lk { font-weight: 400; border-right: 2px solid var(--line-2); }
+  figure#fig-4 .heat thead th { top: var(--bar-h); z-index: 2; }
+  figure#fig-4 table.heat, figure#fig-4 .heat tbody tr:last-child > * { border-bottom: 1px solid var(--rule); }
+  figure#fig-4 .heat td.sm { white-space: nowrap; }
+  figure#fig-4 .h0 { background: var(--figbg); box-shadow: inset 0 0 0 1px var(--line-2); color: var(--muted); }
+  figure#fig-4 .h1 { background: var(--warn-bd); }
+  figure#fig-4 .h2 { background: color-mix(in srgb, var(--re-b) 50%, var(--re-bd)); }
+  figure#fig-4 .h3 { background: var(--re-bd); }
+  figure#fig-4 .legend i.h0 { color: var(--muted); }
+  figure#fig-4 .scrollhint, figure#fig-4 tr.rep { display: none; }
+  figure#fig-4 tr.rep td { padding-top: 10px; font-size: 13px; font-weight: 600; color: var(--muted); text-align: center;
+    border-top: 2px solid var(--line-2); background: var(--figbg); }
+  figure#fig-4 tr.rep td.l { text-align: left; }
+  /* The left rail fits a 768 px window; two-digit numbers keep a space before the text. */
+  nav.toc a { padding-top: 3px; padding-bottom: 3px; }
+  nav.toc .group { margin: 12px 10px 4px; }
+  nav.toc .lnum::before { width: 26px; }
+  nav.toc a:has(.lnum) { padding-left: 36px; text-indent: -26px; }
+  @media (max-width: 960px) {
+    figure#fig-3 .f3 { grid-template-columns: minmax(0, 1fr); }
+    figure#fig-4 .scrollhint { display: block; margin: 0 0 8px; font-size: 13.5px; color: var(--muted); }
+    figure#fig-4 .scrollhint::after { content: " \2192"; }
+    figure#fig-4 .hw { overflow-x: auto; }
+    figure#fig-4 table.heat { min-width: 860px; }
+    figure#fig-4 .heat thead th { top: auto; }
+    figure#fig-4 tr.rep { display: table-row; }
+    figure#fig-4 .heat .rk, figure#fig-4 .heat .sf { position: sticky; z-index: 1; background: var(--figbg); }
+    figure#fig-4 .heat .rk { left: 0; width: 30px; }
+    figure#fig-4 .heat .sf { left: 30px; width: 120px; box-shadow: 2px 0 0 var(--line-2); }
+    figure#fig-4 .heat td.sp { min-width: 64px; }
+  }
+  @media (max-width: 760px) {
+    figure#fig-1 .touches { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 560px) {
+    .strip { grid-template-columns: minmax(0, 1fr); padding: 10px; }
+    table.picks td.th { width: 22%; padding: 4px; }
+    table.picks .open .long { display: none; }
+    .also { margin-left: 0; }
+  }
+  @media (max-width: 480px) {
+    figure#fig-1 .touches { grid-template-columns: minmax(0, 1fr); }
+  }
+  .hscroll { overflow-x: auto; }
+
+  /* Figures reused from the concept sketches. */
+  #fig-1 .yard { border: 1px solid var(--line); border-radius: 10px; background: var(--figbg); padding: 16px; }
+  #fig-1 .touches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
+  #fig-1 .touch { display: flex; flex-direction: column; border: 1px solid var(--line-2); border-radius: 8px; background: var(--card); overflow: hidden; }
+  #fig-1 .touch.extra { border-style: dashed; border-color: var(--rule); background: var(--surface); }
+  #fig-1 .touch .pic { display: flex; align-items: center; justify-content: center; height: 150px; background: var(--grey-50); border-bottom: 1px solid var(--line); }
+  #fig-1 .touch .pic img { display: block; max-width: 100%; max-height: 150px; width: auto; height: auto; }
+  #fig-1 .touch .pic.none { font-size: 13px; color: var(--muted); }
+  #fig-1 .touch .body { padding: 10px 12px 12px; font-size: 14px; line-height: 1.45; }
+  #fig-1 .touch h3 { display: flex; gap: 8px; align-items: baseline; margin: 0 0 4px; font-size: 15px; line-height: 1.3; color: var(--ink); }
+  #fig-1 .touch .n { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--indigo); color: var(--on-accent); font-size: 12.5px; font-weight: 600; }
+  #fig-1 .touch.extra .n { background: var(--grey); }
+  #fig-1 .touch .where { margin: 0 0 6px; font-size: 13px; color: var(--muted); }
+  #fig-1 .touch .rule { margin: 0 0 8px; }
+  #fig-1 .used { display: flex; flex-wrap: wrap; gap: 4px; }
+  #fig-1 .chip { display: inline-block; padding: 0 8px; border-radius: 999px; font-size: 12.5px; font-weight: 600; }
+  #fig-1 .chip.b { color: var(--indigo); background: var(--indigo-50); border: 1px solid var(--note-bd); }
+  #fig-1 .chip.a { color: var(--teal); background: var(--teal-50); border: 1px solid var(--var-bd); }
+  #fig-1 .chip.no { color: var(--muted); background: var(--grey-50); border: 1px solid var(--line-2); }
+  #fig-1 .chip.tc { color: var(--amber); background: var(--amber-50); border: 1px solid var(--warn-bd); }
+  #fig-1 .never { margin: 18px 0 0; padding: 12px 14px; border: 1px solid var(--stop-bd); border-radius: 8px; background: var(--red-50); }
+  #fig-1 .never b { display: block; margin: 0 0 8px; font-size: 14.5px; color: var(--red); }
+  #fig-1 .never ul { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  #fig-1 .never li { padding: 2px 10px; border-radius: 6px; border: 1px solid var(--stop-bd); background: var(--card); font-size: 13.5px; color: var(--ink); }
+  #fig-1 .tokens { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 16px; border: 1px solid var(--line);
+    border-radius: 10px; background: var(--figbg); align-items: start; }
+  #fig-1 .tokens img { display: block; width: 100%; height: auto; border-radius: 4px; }
+  #fig-1 .tokens .h { margin: 0 0 6px; font-size: 14.5px; font-weight: 600; color: var(--ink); }
+  #fig-2 .yard { border: 1px solid var(--line); border-radius: 10px; background: var(--figbg); padding: 16px; }
+  #fig-2 .touches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
+  #fig-2 .touch { display: flex; flex-direction: column; border: 1px solid var(--line-2); border-radius: 8px; background: var(--card); overflow: hidden; }
+  #fig-2 .touch.extra { border-style: dashed; border-color: var(--rule); background: var(--surface); }
+  #fig-2 .touch .pic { display: flex; align-items: center; justify-content: center; height: 150px; background: var(--grey-50); border-bottom: 1px solid var(--line); }
+  #fig-2 .touch .pic img { display: block; max-width: 100%; max-height: 150px; width: auto; height: auto; }
+  #fig-2 .touch .pic.none { font-size: 13px; color: var(--muted); }
+  #fig-2 .touch .body { padding: 10px 12px 12px; font-size: 14px; line-height: 1.45; }
+  #fig-2 .touch h3 { display: flex; gap: 8px; align-items: baseline; margin: 0 0 4px; font-size: 15px; line-height: 1.3; color: var(--ink); }
+  #fig-2 .touch .n { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--indigo); color: var(--on-accent); font-size: 12.5px; font-weight: 600; }
+  #fig-2 .touch.extra .n { background: var(--grey); }
+  #fig-2 .touch .where { margin: 0 0 6px; font-size: 13px; color: var(--muted); }
+  #fig-2 .touch .rule { margin: 0 0 8px; }
+  #fig-2 .used { display: flex; flex-wrap: wrap; gap: 4px; }
+  #fig-2 .chip { display: inline-block; padding: 0 8px; border-radius: 999px; font-size: 12.5px; font-weight: 600; }
+  #fig-2 .chip.b { color: var(--indigo); background: var(--indigo-50); border: 1px solid var(--note-bd); }
+  #fig-2 .chip.a { color: var(--teal); background: var(--teal-50); border: 1px solid var(--var-bd); }
+  #fig-2 .chip.no { color: var(--muted); background: var(--grey-50); border: 1px solid var(--line-2); }
+  #fig-2 .chip.tc { color: var(--amber); background: var(--amber-50); border: 1px solid var(--warn-bd); }
+  #fig-2 .never { margin: 18px 0 0; padding: 12px 14px; border: 1px solid var(--stop-bd); border-radius: 8px; background: var(--red-50); }
+  #fig-2 .never b { display: block; margin: 0 0 8px; font-size: 14.5px; color: var(--red); }
+  #fig-2 .never ul { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  #fig-2 .never li { padding: 2px 10px; border-radius: 6px; border: 1px solid var(--stop-bd); background: var(--card); font-size: 13.5px; color: var(--ink); }
+  #fig-2 .tokens { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 16px; border: 1px solid var(--line);
+    border-radius: 10px; background: var(--figbg); align-items: start; }
+  #fig-2 .tokens img { display: block; width: 100%; height: auto; border-radius: 4px; }
+  #fig-2 .tokens .h { margin: 0 0 6px; font-size: 14.5px; font-weight: 600; color: var(--ink); }
+  #fig-4 .hw { border: 1px solid var(--line); border-radius: 10px; background: var(--figbg); padding: 16px; }
+  #fig-4 table.heat { width: 100%; border-collapse: collapse; font-size: 13.5px; line-height: 1.35; }
+  #fig-4 .heat thead th { position: sticky; top: 0; background: var(--figbg); font-size: 13px; font-weight: 600; color: var(--muted);
+    text-align: center; padding: 4px 2px 8px; border-bottom: 2px solid var(--line-2); }
+  #fig-4 .heat thead th.l { text-align: left; }
+  #fig-4 .heat td, #fig-4 .heat th { padding: 3px 6px; }
+  #fig-4 .heat tr.g > * { border-top: 1px solid var(--line-2); }
+  #fig-4 .heat tbody tr:first-child > * { border-top: 0; }
+  #fig-4 .heat .rk { width: 36px; text-align: center; vertical-align: top; font-size: 15px; color: var(--ink); padding-top: 6px; }
+  #fig-4 .heat .sf { width: 210px; text-align: left; vertical-align: top; font-weight: 600; color: var(--ink); padding-top: 6px; }
+  #fig-4 .heat .sf span { display: block; font-weight: 400; font-size: 12.5px; color: var(--muted); }
+  #fig-4 .heat .lk { width: 250px; color: var(--text); }
+  #fig-4 .heat td.h0, #fig-4 .heat td.h1, #fig-4 .heat td.h2, #fig-4 .heat td.h3, #fig-4 .heat td.sp { width: 58px; text-align: center; font-weight: 600; color: var(--ink);
+    border-left: 3px solid var(--figbg); }
+  #fig-4 .h0 { background: var(--grey-50); }
+  #fig-4 .h1 { background: var(--amber-50); }
+  #fig-4 .h2 { background: var(--re-b); }
+  #fig-4 .h3 { background: var(--re-bd); }
+  #fig-4 .heat td.sp { padding: 0; }
+  #fig-4 .heat td.sp span { display: inline-block; width: 50%; padding: 3px 0; }
+  #fig-4 .heat .sm { position: relative; width: 150px; padding-left: 12px; }
+  #fig-4 .heat .sm .bar { display: inline-block; height: 10px; border-radius: 3px; background: var(--rule); vertical-align: middle; margin-right: 8px; max-width: 100px; }
+  #fig-4 .heat .sm b { font-size: 13.5px; }
+  #fig-4 .legend { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 14px 0 0; padding: 0; list-style: none; font-size: 13.5px; }
+  #fig-4 .legend li { display: flex; align-items: center; gap: 8px; }
+  #fig-4 .legend i { display: inline-block; width: 26px; height: 18px; border-radius: 3px; font-style: normal; font-weight: 600; font-size: 12.5px;
+    text-align: center; line-height: 18px; color: var(--ink); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <input type="checkbox" id="navhide" aria-label="Show or hide the menu">
+  <label class="navtoggle" for="navhide" title="Hide or show the menu"><span class="to-hide"><i class="chev"></i><span class="vh">Hide the menu</span></span><span class="to-show"><i class="burger"></i><span class="lbl">Menu</span></span></label>
+  <a class="ident" href="#top"><i class="mark"></i><span class="t">Pain Matters' UI: closer to RimWorld, still with the wow</span></a>
+  <span class="pill status">Proposed, not decided</span>
+  <span class="rev">the style review's records, 2026-11-09</span>
+  <input type="checkbox" id="railshow" aria-label="Show or hide the list of figures and tables">
+  <label class="railbtn" for="railshow" title="Show or hide Figures and tables"><span class="lbl">Figures and tables</span><i class="chev"></i></label>
+  <input type="checkbox" id="night" class="mode-input" aria-label="Night mode">
+  <label class="mode" for="night"><span class="to-night"><i class="moon"></i><span class="lbl">Night mode</span></span><span class="to-day"><i class="sun"></i><span class="lbl">Day mode</span></span></label>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <a href="#top">Status and asks</a>
+  <a href="#summary">In one minute</a>
+  <div class="group">The yardstick</div>
+  <a href="#look"><span class="lnum" data-n="1."></span>RimWorld's own look</a>
+  <a href="#stands"><span class="lnum" data-n="2."></span>Where Pain Matters stands</a>
+  <div class="group">The seven screens</div>
+  <a href="#conduct"><span class="lnum" data-n="3."></span>Conduct pane</a>
+  <a href="#overview"><span class="lnum" data-n="4."></span>Discipline Overview</a>
+  <a href="#badge"><span class="lnum" data-n="5."></span>Captive badge and menus</a>
+  <a href="#prisoners"><span class="lnum" data-n="6."></span>Prisoners and Slaves</a>
+  <a href="#gambits"><span class="lnum" data-n="7."></span>Gambits</a>
+  <a href="#informants"><span class="lnum" data-n="8."></span>Informants</a>
+  <a href="#letter"><span class="lnum" data-n="9."></span>Verdict letter</a>
+  <div class="group">What follows</div>
+  <a href="#art"><span class="lnum" data-n="10."></span>Concept art</a>
+  <a href="#library"><span class="lnum" data-n="11."></span>The skin library</a>
+  <a href="#picks"><span class="lnum" data-n="12."></span>What we need from you</a>
+  <div class="group">Closing</div>
+  <a href="#open">Open items</a>
+</nav>
+
+<main id="top">
+<div class="doc">
+
+<header class="card hero">
+  <div class="kicker">Style proposal, for your decision</div>
+  <h1>Pain Matters' UI: closer to RimWorld, still with the wow</h1>
+  <p class="subtitle">Seven screens, each drawn twice in RimWorld's own look: strict vanilla, and vanilla plus one Ludeon touch.</p>
+  <div class="pills">
+    <span class="pill ok">Seven screens mocked twice</span>
+    <span class="pill warn">Every choice still open</span>
+  </div>
+  <dl class="meta">
+    <div><dt>Owner</dt><dd>Evyatar</dd></div>
+    <div><dt>Updated</dt><dd>2026-11-10</dd></div>
+    <div><dt>Status</dt><dd>Proposed by the review, 2026-11-10</dd></div>
+    <div><dt>Readers</dt><dd>Evyatar</dd></div>
+  </dl>
+  <p class="src-line"><b>Source.</b> The review's style guide, gap scorecard, mockups and capture runs, 2026-11-09 and 10.</p>
+  <div class="asks">
+    <b>What we need from you</b>
+    <div class="asks-grid">
+      <a href="#picks"><b>Each screen</b>Pick mockup A or B for each of the seven screens</a>
+      <a href="#library"><b>The skins</b>Say whether one native skin replaces Case file and Ledger</a>
+      <a href="#t-questions"><b>The mockups</b>Answer the seven questions the mockups left open</a>
+      <a href="#art"><b>Concept art</b>Say whether to paint three concept images</a>
+    </div>
+  </div>
+</header>
+
+<section class="card" id="summary">
+  <h2>In one minute</h2>
+  <ul>
+    <li><b>The finding.</b> The default Case file skin strays far from RimWorld's look: its Conduct pane and Overview score 14 of 18. The Ledger skin is the closer start, at 7 for the Conduct pane. <span class="ev obs">Observed</span></li>
+    <li><b>The proposal.</b> One native look, built from RimWorld's own window parts, with at most one Ludeon-style touch per screen. Mockup A is strict vanilla; B adds the touch. <span class="ev pro">Proposed</span></li>
+    <li><b>What you decide.</b> A or B for each screen, one native skin or not, the seven open questions, and the concept art. <span class="ev pro">Proposed</span></li>
+  </ul>
+</section>
+
+<section class="card" id="look">
+  <h2><span class="hn">1.</span> RimWorld's own look</h2>
+  <p class="q">How much flourish does RimWorld itself allow, and what does it never do?</p>
+  <p>Every mockup uses only RimWorld's own parts: a blue-black window fill, Arial and Calibri type, brown buttons, grey separators. <span class="ev obs">Observed</span></p>
+  <p>Ludeon's DLCs add flourish in seven small ways; each mockup B borrows one. <span class="ev obs">Observed</span></p>
+  <figure id="fig-1">
+<p class="tap">Click or tap any image to open it full size; on a phone, pinch to zoom.</p>
+    <div class="yard">
+      <ul class="touches">
+        <li class="touch">
+          <div class="pic"><a class="shot" href="assets/full/overview-B.webp"><span class="pic"><img src="assets/t-overview-B.webp" width="300" height="279" alt="Mockup B of the Discipline Overview with a band of chapter tiles"></span><span class="open">Open full size</span></a></div>
+          <div class="body"><h3><span class="n">1</span>Typed tile with background art</h3>
+            <p class="where">Biotech: genes</p>
+            <p class="rule">Art lives inside a small tile and shows its type.</p>
+            <div class="used"><span class="chip b">Overview B</span><span class="chip b">Gambits B</span></div></div>
+        </li>
+        <li class="touch">
+          <div class="pic"><a class="shot" href="assets/full/conduct-B.webp"><span class="pic"><img src="assets/t-conduct-B.webp" width="300" height="338" alt="Mockup B of the Conduct pane with a framed state symbol"></span><span class="open">Open full size</span></a></div>
+          <div class="body"><h3><span class="n">2</span>One large framed symbol</h3>
+            <p class="where">Ideology: memes</p>
+            <p class="rule">One symbol per concept, in a standard box.</p>
+            <div class="used"><span class="chip b">Conduct B</span><span class="chip b">Letters B</span></div></div>
+        </li>
+        <li class="touch">
+          <div class="pic"><a class="shot" href="assets/full/prisoners-B.webp"><span class="pic"><img src="assets/t-prisoners-B.webp" width="300" height="162" alt="Mockup B of the Prisoners and Slaves list with faction icons in faction colour"></span><span class="open">Open full size</span></a></div>
+          <div class="body"><h3><span class="n">3</span>Accent colour from player data</h3>
+            <p class="where">Ideology: symbol picker, styling station</p>
+            <p class="rule">The colour goes on icons, never on the window.</p>
+            <div class="used"><span class="chip b">Prisoners B</span></div></div>
+        </li>
+        <li class="touch">
+          <div class="pic"><a class="shot" href="assets/full/conduct-A.webp"><span class="pic"><img src="assets/t-conduct-A.webp" width="300" height="338" alt="Mockup A of the Conduct pane with the portrait in a plain box"></span><span class="open">Open full size</span></a></div>
+          <div class="body"><h3><span class="n">4</span>Portrait in a plain box</h3>
+            <p class="where">Styling station, character card</p>
+            <p class="rule">A thin box on the window fill, no frame art.</p>
+            <div class="used"><span class="chip a">Conduct A</span></div></div>
+        </li>
+        <li class="touch">
+          <div class="pic none">No mockup uses it</div>
+          <div class="body"><h3><span class="n">5</span>Node tree with flat lines</h3>
+            <p class="where">Royalty permits, research tree</p>
+            <p class="rule">Flat lines; a node's fill shows its state.</p>
+            <div class="used"><span class="chip no">Not used</span></div></div>
+        </li>
+        <li class="touch">
+          <div class="pic none">No mockup uses it</div>
+          <div class="body"><h3><span class="n">6</span>One painted category panel</h3>
+            <p class="where">Anomaly: research tab</p>
+            <p class="rule">One painted panel inside a plain tab.</p>
+            <div class="used"><span class="chip no">Not used</span></div></div>
+        </li>
+        <li class="touch">
+          <div class="pic"><a class="shot" href="assets/full/informants-B.webp"><span class="pic"><img src="assets/t-informants-B.webp" width="300" height="206" alt="Mockup B of the Informants window as a catalogue page"></span><span class="open">Open full size</span></a></div>
+          <div class="body"><h3><span class="n">7</span>Catalogue card</h3>
+            <p class="where">Anomaly: entity codex</p>
+            <p class="rule">A picture and a text block, on the window fill.</p>
+            <div class="used"><span class="chip b">Informants B</span></div></div>
+        </li>
+        <li class="touch extra">
+          <div class="pic"><a class="shot" href="assets/full/badge-B.webp"><span class="pic"><img src="assets/t-badge-B.webp" width="300" height="326" alt="Mockup B of the captive badge with a capsule strip of who could see"></span><span class="open">Open full size</span></a></div>
+          <div class="body"><h3><span class="n">+</span>Capsule stat strip</h3>
+            <p class="where">Biotech: xenotype editor</p>
+            <p class="rule">Ludeon's own, but not on the list of seven.</p>
+            <div class="used"><span class="chip b">Badge B</span><span class="chip tc">to confirm</span></div></div>
+        </li>
+      </ul>
+      <div class="never">
+        <b>What the DLCs never do</b>
+        <ul>
+          <li>Paper, leather or parchment fills</li>
+          <li>Serif or small-caps type</li>
+          <li>Rotated or stamped text</li>
+          <li>Title plates or ribbons</li>
+          <li>Custom-coloured buttons</li>
+          <li>Animated bars</li>
+          <li>Colour on window chrome</li>
+        </ul>
+      </div>
+    </div>
+    <figcaption>Figure 1. Ludeon's seven signature touches, where the DLCs use them, and which mockup borrows each.</figcaption>
+  </figure>
+  <figure id="fig-2">
+    <div class="tokens">
+      <div><p class="h">Palette</p><a class="shot" href="assets/full/tokens.webp"><span class="pic"><img src="assets/tokens-palette.webp" width="1088" height="1050" alt="RimWorld's palette, from the mockups' token sheet"></span><span class="open">Open full size</span></a></div>
+      <div><p class="h">Controls</p><a class="shot" href="assets/full/tokens.webp"><span class="pic"><img src="assets/tokens-controls.webp" width="1088" height="666" alt="RimWorld's controls, from the mockups' token sheet"></span><span class="open">Open full size</span></a></div>
+    </div>
+    <figcaption>Figure 2. The vanilla tokens every mockup uses.</figcaption>
+  </figure>
+</section>
+
+<section class="card" id="stands">
+  <h2><span class="hn">2.</span> Where Pain Matters stands</h2>
+  <p class="q">How far does each surface stray today, and which strays matter most?</p>
+  <p>Each surface is scored on six axes, from 0, what vanilla would draw, to 3, foreign to RimWorld: a sum out of 18. <span class="ev obs">Observed</span></p>
+  <figure id="fig-3">
+    <div class="f3">
+      <div class="slot"><div class="colh"><b>Today</b><span>Case file skin, Wide</span></div><a class="shot" href="assets/full/conduct-today.webp"><span class="pic"><img src="assets/conduct-today.webp" width="614" height="1212" alt="Today's Conduct pane in the Case file skin, ten stray elements boxed and numbered" loading="lazy"><span class="bx" style="left:32.57%;top:0.17%;width:67.43%;height:1.98%"></span><span class="bx" style="left:1.95%;top:41.25%;width:30.29%;height:57.32%"></span><span class="bx" style="left:5.86%;top:2.15%;width:4.56%;height:3.14%"></span><span class="bx" style="left:6.19%;top:20.02%;width:21.28%;height:2.64%"></span><span class="bx" style="left:10.75%;top:23.10%;width:12.70%;height:5.94%"></span><span class="bx" style="left:2.28%;top:30.53%;width:29.64%;height:9.74%"></span><span class="bx" style="left:34.53%;top:4.46%;width:64.17%;height:16.50%"></span><span class="bx" style="left:34.20%;top:2.31%;width:64.50%;height:2.15%"></span><span class="bx" style="left:54.40%;top:31.19%;width:23.45%;height:9.24%"></span><span class="bx" style="left:83.39%;top:90.76%;width:13.03%;height:1.82%"></span><span class="mk" style="left:38.22%;top:1.1%">1</span><span class="mk" style="left:16.94%;top:70.41%">2</span><span class="mk" style="left:13.9%;top:2.64%">3</span><span class="mk" style="left:30.4%;top:21.34%">4</span><span class="mk" style="left:26.49%;top:26.07%">5</span><span class="mk" style="left:28.66%;top:32.12%">6</span><span class="mk" style="left:82.52%;top:16.06%">7</span><span class="mk" style="left:67.32%;top:3.41%">8</span><span class="mk" style="left:80.78%;top:35.75%">9</span><span class="mk" style="left:89.9%;top:94.22%">10</span></span><span class="open">Open full size</span></a></div>
+      <div class="slot"><div class="colh"><b>The ten strays</b><span>Today, then what each becomes</span></div><ol class="f3list"><li><span class="n">1</span><span class="was">Leather top strip</span><span class="now">Vanilla window fill</span></li><li><span class="n">2</span><span class="was">Manila paper sidebar</span><span class="now">Vanilla window fill</span></li><li><span class="n">3</span><span class="was">Paperclip on the portrait</span><span class="now">Portrait in a plain thin box</span></li><li><span class="n">4</span><span class="was">Rotated "In intake" stamp</span><span class="now">Status line under the name</span></li><li><span class="n">5</span><span class="was">Compliance medallion</span><span class="now">Dropped; the bar already shows it</span></li><li><span class="n">6</span><span class="was">Glyph checkboxes</span><span class="now">Plain label and value list</span></li><li><span class="n">7</span><span class="was">Paper State card, dark ink</span><span class="now">Light text on dark, need bars</span></li><li><span class="n">8</span><span class="was">Dark plates, gold labels</span><span class="now">Grey label over a separator line</span></li><li><span class="n">9</span><span class="was">Dark-plate dropdowns</span><span class="now">Vanilla brown button</span></li><li><span class="n">10</span><span class="was">"Harsh" stamp in the log</span><span class="now">Plain log row</span><span class="tc">How severity shows: to confirm</span></li></ol></div>
+      <div class="slot"><div class="colh a"><b>Mockup A</b><span>Replaces all ten</span></div><a class="shot" href="assets/full/conduct-A.webp"><span class="pic"><img src="assets/conduct-A.webp" width="710" height="1188" alt="Mockup A of the Conduct pane: vanilla window fill, need bars and separators" loading="lazy"></span><span class="open">Open full size</span></a></div>
+    </div>
+    <figcaption>Figure 3. Conduct pane, Wide, Case file skin: ten elements and their vanilla replacements.</figcaption>
+  </figure>
+  <figure id="fig-4">
+    <p class="scrollhint">Scroll the table sideways for all six scores.</p>
+    <div class="hw">
+      <table class="heat">
+        <caption class="sr" style="position:absolute;width:1px;height:1px;overflow:hidden">Scores 0 to 3 on six axes for 39 surfaces and looks</caption>
+        <thead>
+          <tr><th class="l">Rank</th><th class="l">Surface, how often met</th><th class="l lk">Skin</th>
+            <th>Palette</th><th>Type</th><th>Chrome</th><th>Controls</th><th>Density</th><th>Art</th><th class="l">Sum of 18</th></tr>
+        </thead>
+        <tbody>
+          <tr class="g"><th scope="rowgroup" rowspan="6" class="rk">1</th><th scope="rowgroup" rowspan="6" class="sf">Conduct pane<span>Every time a captive is selected</span></th><td class="lk">Wide, Case file</td><td class="h3">3</td><td class="h2">2</td><td class="h3">3</td><td class="h2">2</td><td class="h1">1</td><td class="h3">3</td><td class="sm"><span class="bar" style="width:56px"></span><b>14</b></td></tr>
+          <tr><td class="lk">Compact, Case file</td><td class="h3">3</td><td class="h2">2</td><td class="h3">3</td><td class="h2">2</td><td class="h1">1</td><td class="h3">3</td><td class="sm"><span class="bar" style="width:56px"></span><b>14</b></td></tr>
+          <tr><td class="lk">Wide, Ledger</td><td class="h1">1</td><td class="h1">1</td><td class="h1">1</td><td class="h1">1</td><td class="h1">1</td><td class="h2">2</td><td class="sm"><span class="bar" style="width:28px"></span><b>7</b></td></tr>
+          <tr><td class="lk">Compact, Ledger</td><td class="h1">1</td><td class="h2">2</td><td class="h1">1</td><td class="h2">2</td><td class="h1">1</td><td class="h2">2</td><td class="sm"><span class="bar" style="width:36px"></span><b>9</b></td></tr>
+          <tr><td class="lk">Doer's toll on a colonist, Case file / Ledger</td><td class="sp"><span class="h3">3</span><span class="h1">1</span></td><td class="sp"><span class="h1">1</span><span class="h2">2</span></td><td class="sp"><span class="h3">3</span><span class="h1">1</span></td><td class="sp"><span class="h1">1</span><span class="h1">1</span></td><td class="sp"><span class="h2">2</span><span class="h2">2</span></td><td class="sp"><span class="h3">3</span><span class="h1">1</span></td><td class="sm"><span class="bar" style="width:52px"></span><b>13 / 8</b></td></tr>
+          <tr><td class="lk">Lasting dread row, Case file / Ledger</td><td class="sp"><span class="h3">3</span><span class="h1">1</span></td><td class="sp"><span class="h2">2</span><span class="h1">1</span></td><td class="sp"><span class="h3">3</span><span class="h1">1</span></td><td class="sp"><span class="h2">2</span><span class="h1">1</span></td><td class="sp"><span class="h1">1</span><span class="h1">1</span></td><td class="sp"><span class="h3">3</span><span class="h2">2</span></td><td class="sm"><span class="bar" style="width:56px"></span><b>14 / 7</b></td></tr>
+          <tr class="g"><th scope="rowgroup" rowspan="3" class="rk">2</th><th scope="rowgroup" rowspan="3" class="sf">Discipline Overview<span>Daily</span></th><td class="lk">Case file</td><td class="h3">3</td><td class="h2">2</td><td class="h3">3</td><td class="h1">1</td><td class="h2">2</td><td class="h3">3</td><td class="sm"><span class="bar" style="width:56px"></span><b>14</b></td></tr>
+          <tr><td class="lk">Empty state, Case file / Ledger</td><td class="sp"><span class="h3">3</span><span class="h1">1</span></td><td class="sp"><span class="h2">2</span><span class="h2">2</span></td><td class="sp"><span class="h3">3</span><span class="h2">2</span></td><td class="sp"><span class="h0">0</span><span class="h0">0</span></td><td class="sp"><span class="h2">2</span><span class="h2">2</span></td><td class="sp"><span class="h3">3</span><span class="h2">2</span></td><td class="sm"><span class="bar" style="width:52px"></span><b>13 / 9</b></td></tr>
+          <tr><td class="lk">Ledger</td><td class="h1">1</td><td class="h2">2</td><td class="h2">2</td><td class="h1">1</td><td class="h2">2</td><td class="h2">2</td><td class="sm"><span class="bar" style="width:40px"></span><b>10</b></td></tr>
+          <tr class="g"><th scope="rowgroup" rowspan="3" class="rk">3</th><th scope="rowgroup" rowspan="3" class="sf">Captive badge and its menus<span>Every infraction</span></th><td class="lk">Badge</td><td class="h2">2</td><td class="h0">0</td><td class="h2">2</td><td class="h1">1</td><td class="h0">0</td><td class="h2">2</td><td class="sm"><span class="bar" style="width:28px"></span><b>7</b></td></tr>
+          <tr><td class="lk">Response menu</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h1">1</td><td class="h3">3</td><td class="h0">0</td><td class="sm"><span class="bar" style="width:16px"></span><b>4</b></td></tr>
+          <tr><td class="lk">Badge menu</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h1">1</td><td class="h1">1</td><td class="h0">0</td><td class="sm"><span class="bar" style="width:8px"></span><b>2</b></td></tr>
+          <tr class="rep" aria-hidden="true"><td class="l">Rank</td><td class="l">Surface, how often met</td><td class="l lk">Skin</td> <td>Palette</td><td>Type</td><td>Chrome</td><td>Controls</td><td>Density</td><td>Art</td><td class="l">Sum of 18</td></tr>
+          <tr class="g"><th scope="rowgroup" rowspan="4" class="rk">4</th><th scope="rowgroup" rowspan="4" class="sf">Prisoners & Slaves list<span>Daily</span></th><td class="lk">Simple view, Case file</td><td class="h3">3</td><td class="h1">1</td><td class="h2">2</td><td class="h1">1</td><td class="h1">1</td><td class="h3">3</td><td class="sm"><span class="bar" style="width:44px"></span><b>11</b></td></tr>
+          <tr><td class="lk">Advanced view, Case file</td><td class="h3">3</td><td class="h1">1</td><td class="h2">2</td><td class="h1">1</td><td class="h1">1</td><td class="h1">1</td><td class="sm"><span class="bar" style="width:36px"></span><b>9</b></td></tr>
+          <tr><td class="lk">Advanced view, Ledger</td><td class="h1">1</td><td class="h0">0</td><td class="h1">1</td><td class="h1">1</td><td class="h1">1</td><td class="h0">0</td><td class="sm"><span class="bar" style="width:16px"></span><b>4</b></td></tr>
+          <tr><td class="lk">Simple view, Ledger</td><td class="h1">1</td><td class="h0">0</td><td class="h1">1</td><td class="h1">1</td><td class="h0">0</td><td class="h0">0</td><td class="sm"><span class="bar" style="width:12px"></span><b>3</b></td></tr>
+          <tr class="g"><th scope="rowgroup" rowspan="6" class="rk">5</th><th scope="rowgroup" rowspan="6" class="sf">Gambits<span>Several times a week</span></th><td class="lk">Tab, Case file</td><td class="h3">3</td><td class="h1">1</td><td class="h2">2</td><td class="h1">1</td><td class="h2">2</td><td class="h2">2</td><td class="sm"><span class="bar" style="width:44px"></span><b>11</b></td></tr>
+          <tr><td class="lk">Confirm dialog, Case file</td><td class="h3">3</td><td class="h1">1</td><td class="h2">2</td><td class="h0">0</td><td class="h1">1</td><td class="h1">1</td><td class="sm"><span class="bar" style="width:32px"></span><b>8</b></td></tr>
+          <tr><td class="lk">Tab, Ledger</td><td class="h1">1</td><td class="h1">1</td><td class="h1">1</td><td class="h1">1</td><td class="h2">2</td><td class="h2">2</td><td class="sm"><span class="bar" style="width:32px"></span><b>8</b></td></tr>
+          <tr><td class="lk">Confirm dialog, Ledger</td><td class="h1">1</td><td class="h1">1</td><td class="h1">1</td><td class="h0">0</td><td class="h1">1</td><td class="h0">0</td><td class="sm"><span class="bar" style="width:16px"></span><b>4</b></td></tr>
+          <tr><td class="lk">Gambit menu</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h1">1</td><td class="h1">1</td><td class="h0">0</td><td class="sm"><span class="bar" style="width:8px"></span><b>2</b></td></tr>
+          <tr><td class="lk">Gambit letter</td><td class="h0">0</td><td class="h0">0</td><td class="h1">1</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="sm"><span class="bar" style="width:4px"></span><b>1</b></td></tr>
+          <tr class="g"><th scope="rowgroup" rowspan="4" class="rk">6</th><th scope="rowgroup" rowspan="4" class="sf">Informants<span>Weekly, mid-game</span></th><td class="lk">Window, Case file</td><td class="h3">3</td><td class="h1">1</td><td class="h2">2</td><td class="h1">1</td><td class="h1">1</td><td class="h2">2</td><td class="sm"><span class="bar" style="width:40px"></span><b>10</b></td></tr>
+          <tr><td class="lk">Recruit dialog, Case file / Ledger</td><td class="sp"><span class="h3">3</span><span class="h1">1</span></td><td class="sp"><span class="h1">1</span><span class="h1">1</span></td><td class="sp"><span class="h2">2</span><span class="h1">1</span></td><td class="sp"><span class="h1">1</span><span class="h2">2</span></td><td class="sp"><span class="h1">1</span><span class="h1">1</span></td><td class="sp"><span class="h0">0</span><span class="h0">0</span></td><td class="sm"><span class="bar" style="width:32px"></span><b>8 / 6</b></td></tr>
+          <tr><td class="lk">Window, Ledger</td><td class="h1">1</td><td class="h1">1</td><td class="h1">1</td><td class="h2">2</td><td class="h1">1</td><td class="h2">2</td><td class="sm"><span class="bar" style="width:32px"></span><b>8</b></td></tr>
+          <tr><td class="lk">Gizmos and letters</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h1">1</td><td class="sm"><span class="bar" style="width:4px"></span><b>1</b></td></tr>
+          <tr class="g"><th scope="rowgroup" rowspan="2" class="rk">7</th><th scope="rowgroup" rowspan="2" class="sf">Wardens sub-tab<span>Occasionally</span></th><td class="lk">Case file</td><td class="h3">3</td><td class="h1">1</td><td class="h2">2</td><td class="h2">2</td><td class="h1">1</td><td class="h3">3</td><td class="sm"><span class="bar" style="width:48px"></span><b>12</b></td></tr>
+          <tr><td class="lk">Ledger</td><td class="h2">2</td><td class="h1">1</td><td class="h1">1</td><td class="h2">2</td><td class="h1">1</td><td class="h3">3</td><td class="sm"><span class="bar" style="width:40px"></span><b>10</b></td></tr>
+          <tr class="rep" aria-hidden="true"><td class="l">Rank</td><td class="l">Surface, how often met</td><td class="l lk">Skin</td> <td>Palette</td><td>Type</td><td>Chrome</td><td>Controls</td><td>Density</td><td>Art</td><td class="l">Sum of 18</td></tr>
+          <tr class="g"><th scope="rowgroup" rowspan="1" class="rk">8</th><th scope="rowgroup" rowspan="1" class="sf">Letters<span>Every verdict and escape</span></th><td class="lk">Verdict, escape, exposure, unrest</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h2">2</td><td class="sm"><span class="bar" style="width:8px"></span><b>2</b></td></tr>
+          <tr class="g"><th scope="rowgroup" rowspan="2" class="rk">9</th><th scope="rowgroup" rowspan="2" class="sf">Settings window<span>Rarely</span></th><td class="lk">Case file</td><td class="h2">2</td><td class="h1">1</td><td class="h2">2</td><td class="h1">1</td><td class="h1">1</td><td class="h1">1</td><td class="sm"><span class="bar" style="width:32px"></span><b>8</b></td></tr>
+          <tr><td class="lk">Ledger</td><td class="h1">1</td><td class="h1">1</td><td class="h2">2</td><td class="h2">2</td><td class="h1">1</td><td class="h0">0</td><td class="sm"><span class="bar" style="width:28px"></span><b>7</b></td></tr>
+          <tr class="g"><th scope="rowgroup" rowspan="4" class="rk">10</th><th scope="rowgroup" rowspan="4" class="sf">Near vanilla already<span>Rarely</span></th><td class="lk">Hierarchy window and map lines</td><td class="h1">1</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h1">1</td><td class="h1">1</td><td class="sm"><span class="bar" style="width:12px"></span><b>3</b></td></tr>
+          <tr><td class="lk">Network sub-tab</td><td class="h1">1</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="sm"><span class="bar" style="width:4px"></span><b>1</b></td></tr>
+          <tr><td class="lk">Policy editor</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h1">1</td><td class="h0">0</td><td class="h0">0</td><td class="sm"><span class="bar" style="width:4px"></span><b>1</b></td></tr>
+          <tr><td class="lk">Fear and meter overlays</td><td class="h1">1</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="sm"><span class="bar" style="width:4px"></span><b>1</b></td></tr>
+          <tr class="rep" aria-hidden="true"><td class="l">Rank</td><td class="l">Surface, how often met</td><td class="l lk">Skin</td> <td>Palette</td><td>Type</td><td>Chrome</td><td>Controls</td><td>Density</td><td>Art</td><td class="l">Sum of 18</td></tr>
+          <tr class="g"><th scope="rowgroup" rowspan="4" class="rk"></th><th scope="rowgroup" rowspan="4" class="sf">Vanilla, not ranked<span></span></th><td class="lk">Top strip: credibility, tabs, filters</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="sm"><span class="bar" style="width:0px"></span><b>0</b></td></tr>
+          <tr><td class="lk">Alerts and messages</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="sm"><span class="bar" style="width:0px"></span><b>0</b></td></tr>
+          <tr><td class="lk">Chapter gizmos, inspect text, buildings</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="sm"><span class="bar" style="width:0px"></span><b>0</b></td></tr>
+          <tr><td class="lk">Building rings, Needs rows, locked-response tooltip</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="h0">0</td><td class="sm"><span class="bar" style="width:0px"></span><b>0</b></td></tr>
+        </tbody>
+      </table>
+      <ul class="legend">
+        <li><i class="h0">0</i>Vanilla</li>
+        <li><i class="h1">1</i>Unusual arrangement</li>
+        <li><i class="h2">2</i>Visible departure</li>
+        <li><i class="h3">3</i>Foreign to RimWorld</li>
+        <li><i class="h3" style="width:13px;border-radius:3px 0 0 3px"></i><i class="h1" style="width:13px;margin-left:-8px;border-radius:0 3px 3px 0"></i>Split cell: Case file, then Ledger</li>
+      </ul>
+    </div>
+    <figcaption>Figure 4. Every surface and skin scored against vanilla. How often a player meets each one is assumed.</figcaption>
+  </figure>
+  <p>Rescored on 2026-11-10 against new captures; no rank moved. <span class="ev obs">Observed</span></p>
+</section>
+
+<section class="card" id="conduct">
+  <h2><span class="hn">3.</span> Conduct pane</h2>
+  <p class="q">What changes on the pane players see most, and does it still look like RimWorld?</p>
+  <figure id="fig-5">
+    <div class="strip">
+  <div class="slot"><div class="colh"><b>Today</b><span>Case file skin, Wide</span></div><a class="shot" href="assets/full/conduct-today.webp"><span class="pic"><img src="assets/conduct-today.webp" width="614" height="1212" alt="Today's Conduct pane in the Case file skin: paper cards on leather, a stamp and a medallion" loading="lazy"><span class="mk" style="left:17%;top:58%">1</span><span class="mk" style="left:30.3%;top:21.6%">2</span><span class="mk" style="left:26.9%;top:25.7%">3</span><span class="mk" style="left:65%;top:22.3%">4</span><span class="mk" style="left:70%;top:9.1%">5</span><span class="mk" style="left:84.7%;top:34.7%">6</span></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh v"><b>Nearest vanilla</b><span>Needs tab</span></div><a class="shot" href="assets/full/conduct-vanilla.webp"><span class="pic"><img src="assets/conduct-vanilla.webp" width="584" height="723" alt="Vanilla's Needs tab for a prisoner: one bar per need, the rows the pane's meters become" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh a"><b>Mockup A</b><span>Strict vanilla</span></div><a class="shot" href="assets/full/conduct-A.webp"><span class="pic"><img src="assets/conduct-A.webp" width="710" height="1188" alt="Mockup A of the Conduct pane: vanilla window fill, need bars and separators" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh b"><b>Mockup B</b><span>A plus a framed symbol, from Ideology's meme boxes</span></div><a class="shot" href="assets/full/conduct-B.webp"><span class="pic"><img src="assets/conduct-B.webp" width="720" height="1273" alt="Mockup B of the Conduct pane: mockup A plus a framed symbol for the captive's state" loading="lazy"><span class="mk" style="left:8.33%;top:26.32%">7</span></span><span class="open">Open full size</span></a></div>
+</div>
+    <figcaption>Figure 5. Conduct pane, Wide: today, the vanilla Needs tab, mockups A and B.</figcaption>
+  </figure>
+  <ol class="circled">
+    <li><span class="n">1</span>Paper and leather fills give way to vanilla's blue-black window. <span class="ev pro">Proposed</span></li>
+    <li><span class="n">2</span>The rotated status stamp becomes a status line under the name.</li>
+    <li><span class="n">3</span>The compliance medallion goes; the bar shows it.</li>
+    <li><span class="n">4</span>Dark plates with gold labels become vanilla separators.</li>
+    <li><span class="n">5</span>Meters become need bars with change arrows.</li>
+    <li><span class="n">6</span>Dropdowns become vanilla's brown buttons.</li>
+    <li><span class="n">7</span>B only: one framed symbol for the captive's state.</li>
+  </ol>
+  <table class="facts">
+    <tbody>
+      <tr><th scope="row">B's touch</th><td>One large framed symbol, from Ideology's meme boxes: an 80 px symbol for the captive's state, under the portrait</td></tr>
+      <tr><th scope="row">New art</th><td>One 80 px symbol per state: intake, privileged and broken at least</td></tr>
+      <tr><th scope="row">Cost</th><td>A: a few days. B: a day or less more, once the art exists</td></tr>
+      <tr><th scope="row">Minimal mode</th><td>Meters read "Sealed"; B's symbol shows in every mode</td></tr>
+      <tr><th scope="row">Your call</th><td>A or B. Also open: which states get a symbol</td></tr>
+    </tbody>
+  </table>
+  <details><summary>What stays, what goes, and the need-bar ticks</summary>
+    <p><b>Kept.</b> The two columns, every reading and handling control, the case, intel and record sections, and the log. The Wide and Compact layouts stay: they are widths, not looks. <span class="ev pro">Proposed</span></p>
+    <p><b>Moved.</b> The skin switch goes. The layout switch becomes a "Wide" link with a menu at the top right. The status pips become a short list under the portrait.</p>
+    <p><b>Need-bar ticks.</b> Vanilla draws a need bar's ticks in a dark grey that is faint on black. Mockup A keeps them faint. Should Pain Matters draw them lighter? <span class="ev obs">Observed</span></p>
+  </details>
+</section>
+
+<section class="card" id="overview">
+  <h2><span class="hn">4.</span> Discipline Overview</h2>
+  <p class="q">Does the front page read as a RimWorld window?</p>
+  <figure id="fig-6">
+    <div class="strip">
+  <div class="slot"><div class="colh"><b>Today</b><span>Case file skin</span></div><a class="shot" href="assets/full/overview-today.webp"><span class="pic"><img src="assets/overview-today.webp" width="864" height="598" alt="Today's Discipline Overview in the Case file skin: paper tiles on leather with emblems" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh v"><b>Nearest vanilla</b><span>History tab</span></div><a class="shot" href="assets/full/overview-vanilla.webp"><span class="pic"><img src="assets/overview-vanilla.webp" width="900" height="575" alt="Vanilla's History tab, the main-tab window nearest to an overview page" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh a"><b>Mockup A</b><span>Strict vanilla</span></div><a class="shot" href="assets/full/overview-A.webp"><span class="pic"><img src="assets/overview-A.webp" width="900" height="504" alt="Mockup A of the Discipline Overview: six section boxes in three columns" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh b"><b>Mockup B</b><span>A plus chapter tiles, from Biotech's gene tiles</span></div><a class="shot" href="assets/full/overview-B.webp"><span class="pic"><img src="assets/overview-B.webp" width="900" height="752" alt="Mockup B of the Discipline Overview: five boxes and a band of eight chapter tiles" loading="lazy"></span><span class="open">Open full size</span></a></div>
+</div>
+    <figcaption>Figure 6. Discipline Overview: today, vanilla's History tab, mockups A and B.</figcaption>
+  </figure>
+  <ul class="walk">
+    <li>Paper tiles on leather become vanilla section boxes. <span class="ev pro">Proposed</span></li>
+    <li>The emblems on the tiles go.</li>
+    <li>The "Overdue" stamp box becomes red text beside the number.</li>
+    <li>Tiles become three columns, each as tall as its content.</li>
+    <li>A: the eight chapter chips become eight text rows.</li>
+    <li>B only: the chapters become a band of eight typed tiles.</li>
+  </ul>
+  <table class="facts">
+    <tbody>
+      <tr><th scope="row">B's touch</th><td>Typed tiles with background art, from Biotech's gene tiles. The background marks whether a chapter acts on captives or on the colony</td></tr>
+      <tr><th scope="row">New art</th><td>Two 90 px tile backgrounds. Pain Matters has no chapter icons, so the mockup borrows the closest ones</td></tr>
+      <tr><th scope="row">Cost</th><td>A: a day or less. B: a few days more</td></tr>
+      <tr><th scope="row">Minimal mode</th><td>What today's Overview hides, A and B hide; not checked tile by tile</td></tr>
+      <tr><th scope="row">Your call</th><td>A or B. Also open: is captive or colony the split the tiles should show</td></tr>
+    </tbody>
+  </table>
+  <details><summary>What stays</summary>
+    <p>The six tiles stay, with every number, caption and link, and the conscience graph. A is cheap because the Ledger skin already draws these tiles. <span class="ev pro">Proposed</span></p>
+  </details>
+</section>
+
+<section class="card" id="badge">
+  <h2><span class="hn">5.</span> Captive badge and its menus</h2>
+  <p class="q">Where should "who knows" live?</p>
+  <figure id="fig-7">
+    <div class="strip">
+  <div class="slot"><div class="colh"><b>Today</b><span>Case file skin, response menu</span></div><a class="shot" href="assets/full/badge-today.webp"><span class="pic"><img src="assets/badge-today.webp" width="774" height="844" alt="Today's response menu in the Case file skin: four options, each a paragraph with greyed secrecy lines" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh v"><b>Nearest vanilla</b><span>Float menu</span></div><a class="shot" href="assets/full/badge-vanilla.webp"><span class="pic"><img src="assets/badge-vanilla.webp" width="308" height="166" alt="A vanilla float menu, the menu RimWorld opens from a gizmo or a right click" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh a"><b>Mockup A</b><span>Strict vanilla, response menu and its Who knows tooltip</span></div><a class="shot" href="assets/full/badge-A.webp"><span class="pic"><img src="assets/badge-A.webp" width="680" height="730" alt="Mockup A's response menu with fit words, and the tooltip that says who knows" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh b"><b>Mockup B</b><span>A plus a capsule strip, from Biotech's biostat capsules</span></div><a class="shot" href="assets/full/badge-B.webp"><span class="pic"><img src="assets/badge-B.webp" width="720" height="679" alt="Mockup B of the captive badge: the response menu with a capsule strip of who could see or hear" loading="lazy"></span><span class="open">Open full size</span></a></div>
+</div>
+<div class="strip pair">
+  <div class="slot"><div class="colh"><b>Today</b><span>The badge in the gizmo bar, beside Gambits</span></div><a class="shot" href="assets/full/badge-gizmo-today.webp"><span class="pic"><img src="assets/badge-gizmo-today.webp" width="330" height="180" alt="Today's captive badge in the gizmo bar: a black square beside the blue Gambits gizmo" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh a"><b>Mockup A</b><span>The badge and its Pending records tooltip</span></div><a class="shot" href="assets/full/badge-A-gizmo.webp"><span class="pic"><img src="assets/badge-A-gizmo.webp" width="620" height="245" alt="Mockup A's captive badge: a full-square gavel, with the Pending records tooltip above it" loading="lazy"></span><span class="open">Open full size</span></a></div>
+</div>
+    <figcaption>Figure 7. Captive badge. Top: the response menu today, a vanilla float menu, mockups A and B. Below: the badge, today and in mockup A with its tooltip.</figcaption>
+  </figure>
+  <ul class="walk">
+    <li>The gavel fills the gizmo square, as vanilla icons do. <span class="ev pro">Proposed</span></li>
+    <li>The count and label sit on vanilla's grey label backing.</li>
+    <li>The fit line and greyed secrecy lines leave the menu.</li>
+    <li>Secrecy facts move to a "Who knows" tooltip.</li>
+    <li>Fit marks like [***] become words: good, fair or poor fit.</li>
+    <li>B only: a capsule strip counts who could see or hear right now.</li>
+  </ul>
+  <table class="facts">
+    <tbody>
+      <tr><th scope="row">B's touch</th><td>A capsule stat strip, from Biotech's biostat capsules. Ludeon's own, but not one of the seven touches</td></tr>
+      <tr><th scope="row">New art</th><td>An 18 px ear glyph; the eye is the mod's Informants icon</td></tr>
+      <tr><th scope="row">Cost</th><td>A: a day or less. B: a few days more</td></tr>
+      <tr><th scope="row">Minimal mode</th><td>Who knows stays hidden, so B's strip would not draw</td></tr>
+      <tr><th scope="row">Your call</th><td>A or B. Also open: counts or names, and fit words or icons</td></tr>
+    </tbody>
+  </table>
+  <details><summary>The gizmo bar, the tooltip and one assumption</summary>
+    <p>The strip shows the response menu. The gizmo itself sits in the bar at the bottom of the screen: today its black fill reads as a hole beside the blue Gambits gizmo. <span class="ev obs">Observed</span></p>
+    <ul class="also">
+      <li><a href="assets/full/badge-gizmo-vanilla.webp">Vanilla gizmo bar</a></li>
+    </ul>
+    <p>The mockup shows "Ignore" with the verdict word "weak". That assumes no response falls in the weakest band; the code should confirm it. <span class="ev asm">Assumed</span></p>
+  </details>
+</section>
+
+<section class="card" id="prisoners">
+  <h2><span class="hn">6.</span> Prisoners and Slaves list</h2>
+  <p class="q">The list is already vanilla in shape; what is left to change?</p>
+  <figure id="fig-8">
+    <div class="strip">
+  <div class="slot"><div class="colh"><b>Today</b><span>Case file skin, Advanced view</span></div><a class="shot" href="assets/full/prisoners-today.webp"><span class="pic"><img src="assets/prisoners-today.webp" width="900" height="705" alt="Today's Prisoners and Slaves list, Advanced view, in the Case file skin" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh v"><b>Nearest vanilla</b><span>Assign tab</span></div><a class="shot" href="assets/full/prisoners-vanilla.webp"><span class="pic"><img src="assets/prisoners-vanilla.webp" width="700" height="270" alt="Vanilla's Assign tab, a table with one row per pawn" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh a"><b>Mockup A</b><span>Strict vanilla</span></div><a class="shot" href="assets/full/prisoners-A.webp"><span class="pic"><img src="assets/prisoners-A.webp" width="900" height="438" alt="Mockup A of the Prisoners and Slaves list: a pawn table with tier words beside the bars" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh b"><b>Mockup B</b><span>A plus faction icons, from Ideology's colour picker</span></div><a class="shot" href="assets/full/prisoners-B.webp"><span class="pic"><img src="assets/prisoners-B.webp" width="900" height="418" alt="Mockup B of the Prisoners and Slaves list: mockup A plus a faction icon in the faction's colour" loading="lazy"></span><span class="open">Open full size</span></a></div>
+</div>
+<div class="strip pair">
+  <div class="slot"><div class="colh a"><b>Mockup A</b><span>Close-up: the name column</span></div><a class="shot" href="assets/full/prisoners-A-names.webp"><span class="pic"><img src="assets/prisoners-A-names.webp" width="320" height="270" alt="Close-up of mockup A's name column: a portrait and a name on each row" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh b"><b>Mockup B</b><span>Close-up: a faction icon beside each portrait</span></div><a class="shot" href="assets/full/prisoners-B-names.webp"><span class="pic"><img src="assets/prisoners-B-names.webp" width="320" height="270" alt="Close-up of mockup B's name column: a shield in the faction's colour between portrait and name" loading="lazy"></span><span class="open">Open full size</span></a></div>
+</div>
+    <figcaption>Figure 8. Prisoners and Slaves, Advanced view: today, vanilla's Assign tab, mockups A and B; below, A and B's name column close up.</figcaption>
+  </figure>
+  <ul class="walk">
+    <li>The paper body becomes vanilla's window fill. <span class="ev pro">Proposed</span></li>
+    <li>The tier band goes; tier words sit by the bars.</li>
+    <li>Header plates become vanilla separators.</li>
+    <li>Four filter buttons become one dropdown.</li>
+    <li>A 24 px pawn icon leads each row, as in the Animals tab.</li>
+    <li>B only: each captive's faction icon, in the faction's colour.</li>
+  </ul>
+  <table class="facts">
+    <tbody>
+      <tr><th scope="row">B's touch</th><td>Accent colour on icons only, from Ideology's symbol and colour picker. The colour is faction data, never a game state</td></tr>
+      <tr><th scope="row">New art</th><td>None: the game draws each faction's own icon. The mockup can't copy Ludeon's icons, so one shield stands in</td></tr>
+      <tr><th scope="row">Cost</th><td>A: a few days. B: a day or less more</td></tr>
+      <tr><th scope="row">Minimal mode</th><td>No Advanced view; B's faction icon is public, so it shows in every mode</td></tr>
+      <tr><th scope="row">Your call</th><td>A or B. Also open: should the middle tiers stay plain text</td></tr>
+    </tbody>
+  </table>
+  <details><summary>Tier colours, and the Simple view</summary>
+    <p>The Simple view strays further than the Advanced one, 11 against 9: it stamps a status badge on every row. The mockups draw the Advanced view. <span class="ev obs">Observed</span></p>
+    <p>Unruly, Stubborn and Subdued take vanilla's bad, warning and good colours. Cooperative and Obedient carry no colour. Broken and Shattered keep Pain Matters' blue and purple. <span class="ev pro">Proposed</span></p>
+  </details>
+</section>
+
+<section class="card" id="gambits">
+  <h2><span class="hn">7.</span> Gambits</h2>
+  <p class="q">Can the cards lose their skin art and keep what matters?</p>
+  <figure id="fig-9">
+    <div class="strip">
+  <div class="slot"><div class="colh"><b>Today</b><span>Case file skin, the tab</span></div><a class="shot" href="assets/full/gambits-today.webp"><span class="pic"><img src="assets/gambits-today.webp" width="864" height="648" alt="Today's Gambits tab in the Case file skin: framed cards on paper" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh v"><b>Nearest vanilla</b><span>Info card</span></div><a class="shot" href="assets/full/gambits-vanilla.webp"><span class="pic"><img src="assets/gambits-vanilla.webp" width="900" height="722" alt="Vanilla's info card, a dialog frame; the message box the confirm dialog borrows was not captured" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh a"><b>Mockup A</b><span>Strict vanilla</span></div><a class="shot" href="assets/full/gambits-A.webp"><span class="pic"><img src="assets/gambits-A.webp" width="680" height="567" alt="Mockup A of the Gambits tab: each gambit in a vanilla section box" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh b"><b>Mockup B</b><span>A plus typed tiles, from Biotech's gene backgrounds</span></div><a class="shot" href="assets/full/gambits-B.webp"><span class="pic"><img src="assets/gambits-B.webp" width="720" height="556" alt="Mockup B of the Gambits tab: mockup A with a typed tile behind each gambit icon" loading="lazy"></span><span class="open">Open full size</span></a></div>
+</div>
+<div class="strip pair">
+  <div class="slot"><div class="colh"><b>Today</b><span>The confirm dialog</span></div><a class="shot" href="assets/full/gambits-dialog-today.webp"><span class="pic"><img src="assets/gambits-dialog-today.webp" width="567" height="608" alt="Today's gambit confirm dialog in the Case file skin" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh a"><b>Mockup A</b><span>The confirm dialog as a vanilla message box</span></div><a class="shot" href="assets/full/gambits-A2.webp"><span class="pic"><img src="assets/gambits-A2.webp" width="560" height="614" alt="Mockup A's confirm dialog: a vanilla message box with the odds terms in a small grey line" loading="lazy"></span><span class="open">Open full size</span></a></div>
+</div>
+    <figcaption>Figure 9. Gambits: today, vanilla's info card, mockups A and B; below, the confirm dialog.</figcaption>
+  </figure>
+  <ul class="walk">
+    <li>Each card's skin frame becomes a vanilla section box. <span class="ev pro">Proposed</span></li>
+    <li>Both outcomes stay written on the card.</li>
+    <li>The odds stay text, the warden's own figure.</li>
+    <li>The dialog takes a vanilla message box's shape.</li>
+    <li>The dialog's odds terms move to a small grey line.</li>
+    <li>B only: a typed tile behind each icon, talk or dark act.</li>
+  </ul>
+  <table class="facts">
+    <tbody>
+      <tr><th scope="row">B's touch</th><td>Typed tile with background art, from Biotech's gene backgrounds. The "Dark" word stays</td></tr>
+      <tr><th scope="row">New art</th><td>Two 60 px tile backgrounds: talk and dark</td></tr>
+      <tr><th scope="row">Cost</th><td>A: a day or less. B: a day or less more, once the art exists</td></tr>
+      <tr><th scope="row">Minimal mode</th><td>Odds that hang on a hidden reading read "Odds uncertain"</td></tr>
+      <tr><th scope="row">Your call</th><td>A or B. Also open: outcomes on the card, or in a tooltip</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn"><b>A text bug in today's game</b> The confirm dialog reads "Odds: 48%: base 30": a doubled colon. <span class="ev obs">Observed</span></div>
+  <details><summary>Where the mockup departs from the scorecard</summary>
+    <p>The scorecard proposed a list with the outcomes in tooltips. The mockup keeps them on the card: they are what the player decides on. <span class="ev pro">Proposed</span></p>
+  </details>
+</section>
+
+<section class="card" id="informants">
+  <h2><span class="hn">8.</span> Informants</h2>
+  <p class="q">With two to four informants, what layout reads fastest?</p>
+  <figure id="fig-10">
+    <div class="strip">
+  <div class="slot"><div class="colh"><b>Today</b><span>Case file skin</span></div><a class="shot" href="assets/full/informants-today.webp"><span class="pic"><img src="assets/informants-today.webp" width="900" height="705" alt="Today's Informants window in the Case file skin: cards with stamps on paper" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh v"><b>Nearest vanilla</b><span>Factions tab</span></div><a class="shot" href="assets/full/informants-vanilla.webp"><span class="pic"><img src="assets/informants-vanilla.webp" width="900" height="614" alt="Vanilla's Factions tab, one row per faction; the entity codex was not captured" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh a"><b>Mockup A</b><span>Strict vanilla</span></div><a class="shot" href="assets/full/informants-A.webp"><span class="pic"><img src="assets/informants-A.webp" width="840" height="488" alt="Mockup A of the Informants window: one open row per informant and the report feed" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh b"><b>Mockup B</b><span>A plus catalogue cards, from Anomaly's entity codex</span></div><a class="shot" href="assets/full/informants-B.webp"><span class="pic"><img src="assets/informants-B.webp" width="840" height="513" alt="Mockup B of the Informants window: each informant as a catalogue card with a portrait" loading="lazy"></span><span class="open">Open full size</span></a></div>
+</div>
+<div class="strip pair">
+  <div class="slot"><div class="colh"><b>Today</b><span>The recruit dialog</span></div><a class="shot" href="assets/full/informants-recruit-today.webp"><span class="pic"><img src="assets/informants-recruit-today.webp" width="725" height="528" alt="Today's informant recruit dialog in the Case file skin" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh a"><b>Mockup A</b><span>The recruit dialog, with vanilla's close X</span></div><a class="shot" href="assets/full/informants-A2.webp"><span class="pic"><img src="assets/informants-A2.webp" width="740" height="336" alt="Mockup A's recruit dialog: first column Captive, closed with vanilla's X" loading="lazy"></span><span class="open">Open full size</span></a></div>
+</div>
+    <figcaption>Figure 10. Informants: today, vanilla's Factions tab, mockups A and B; below, the recruit dialog.</figcaption>
+  </figure>
+  <ul class="walk">
+    <li>The cards' stamps and paper go. <span class="ev pro">Proposed</span></li>
+    <li>Every informant stays an open row.</li>
+    <li>Risk is a thin bar in its band's colour.</li>
+    <li>The recruit dialog's first column reads "Captive".</li>
+    <li>The recruit dialog closes with vanilla's X at the top right.</li>
+    <li>B only: each informant as a catalogue card with a portrait.</li>
+  </ul>
+  <table class="facts">
+    <tbody>
+      <tr><th scope="row">B's touch</th><td>The catalogue card, from Anomaly's entity codex: portrait, name, facts and actions</td></tr>
+      <tr><th scope="row">New art</th><td>None; a new card drawer</td></tr>
+      <tr><th scope="row">Cost</th><td>A: a day or less. B: a few days more</td></tr>
+      <tr><th scope="row">Minimal mode</th><td>The network is hidden, in A and B alike</td></tr>
+      <tr><th scope="row">Your call</th><td>A or B. Also open: open rows, or a list with one informant's detail</td></tr>
+    </tbody>
+  </table>
+  <details><summary>New wording in the report feed</summary>
+    <p>The escape-planning feed row needs a subject, such as "Koala:". How today's feed names it should be checked before building. <span class="ev pro">Proposed</span></p>
+  </details>
+</section>
+
+<section class="card" id="letter">
+  <h2><span class="hn">9.</span> Verdict letter</h2>
+  <p class="q">Should the verdict letter keep an emblem, and can it lose the stamp?</p>
+  <figure id="fig-11">
+    <div class="strip">
+  <div class="slot"><div class="colh"><b>Today</b><span>Case file skin</span></div><a class="shot" href="assets/full/letter-today.webp"><span class="pic"><img src="assets/letter-today.webp" width="712" height="488" alt="Today's verdict letter with a rotated stamp and an emblem column" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh v"><b>Nearest vanilla</b><span>Letter</span></div><a class="shot" href="assets/full/letter-vanilla.webp"><span class="pic"><img src="assets/letter-vanilla.webp" width="628" height="488" alt="A vanilla letter: title band, text and options" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh a"><b>Mockup A</b><span>Strict vanilla</span></div><a class="shot" href="assets/full/letter-A.webp"><span class="pic"><img src="assets/letter-A.webp" width="700" height="328" alt="Mockup A of the verdict letter: a plain vanilla letter with no stamp" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh b"><b>Mockup B</b><span>A plus a framed symbol, from Ideology's meme boxes</span></div><a class="shot" href="assets/full/letter-B.webp"><span class="pic"><img src="assets/letter-B.webp" width="720" height="301" alt="Mockup B of the verdict letter: an upright framed verdict symbol in the emblem column" loading="lazy"></span><span class="open">Open full size</span></a></div>
+</div>
+    <figcaption>Figure 11. Verdict letter: today, a vanilla letter, mockups A and B.</figcaption>
+  </figure>
+  <ul class="walk">
+    <li>The rotated stamp goes. <span class="ev pro">Proposed</span></li>
+    <li>A drops the emblem column: a plain vanilla letter.</li>
+    <li>B keeps the column, with an upright 72 px verdict symbol.</li>
+    <li>B puts the word "Verdict" under the symbol, in small type.</li>
+  </ul>
+  <table class="facts">
+    <tbody>
+      <tr><th scope="row">B's touch</th><td>One framed symbol, from Ideology. Vanilla letters have no emblem column, so the column is Pain Matters' own</td></tr>
+      <tr><th scope="row">New art</th><td>None: today's verdict art</td></tr>
+      <tr><th scope="row">Already built</th><td>The gambit letter: an upright card, no stamp</td></tr>
+      <tr><th scope="row">Cost</th><td>A day or less, for either</td></tr>
+      <tr><th scope="row">Minimal mode</th><td>The same; the letter names no hidden reading</td></tr>
+      <tr><th scope="row">Your call</th><td>A or B</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="card" id="art">
+  <h2><span class="hn">10.</span> Concept art</h2>
+  <p class="q">What would mockup B look like painted?</p>
+  <div class="callout note plan"><b>Planned, waiting for your go-ahead</b> Painted images of mockup B for the Conduct pane, Overview and Informants. <span class="ev pro">Proposed</span></div>
+</section>
+
+<section class="card" id="library">
+  <h2><span class="hn">11.</span> What the skin library would become</h2>
+  <p class="q">If one native look replaces both skins, what goes, what stays, and what does it cost?</p>
+  <p>The mod ships two skins, Case file and Ledger. The review proposes one native skin instead. <span class="ev pro">Proposed</span></p>
+  <table id="t-library">
+    <thead><tr><th>Fate</th><th>What</th><th>Instead</th></tr></thead>
+    <tbody>
+      <tr><td>Retire</td><td>The Case file skin: leather, manila and paper fills, card frames, the paperclip, the wax seal and stamped text</td><td>Vanilla window fill. Most of the mod's 60 UI textures go; saved settings naming Case file need a fallback</td></tr>
+      <tr><td>Retire</td><td>Letter-spaced small caps and the diamond rule</td><td>Vanilla separators</td></tr>
+      <tr><td>Retire</td><td>Dark plates with gold labels, on headers and buttons</td><td>Separators and vanilla buttons</td></tr>
+      <tr><td>Retire</td><td>The meters' ease and flash animation</td><td>Bars jump to their value, as vanilla's do; change arrows show the trend</td></tr>
+      <tr><td>Keep, restyled</td><td>The meters</td><td>Need bars, one colour per meter</td></tr>
+      <tr><td>Keep, restyled</td><td>The meaning colours</td><td>Paper tones go; good, bad and warning match vanilla</td></tr>
+      <tr><td>Keep, restyled</td><td>Collapsible group headers, search, the odds bar</td><td>Vanilla's arrows, quick search and fillable bar</td></tr>
+      <tr><td>Keep, restyled</td><td>The letter's emblem column</td><td>Upright symbol only</td></tr>
+      <tr><td>Keep</td><td>Surface emblems and the six meter glyphs</td><td>24 to 32 px icons, the one place the mod's own art shows</td></tr>
+    </tbody>
+  </table>
+  <p><b>Rough cost.</b> Moderate: Ledger already draws every skinned surface, so most work is deleting Case file's branches. <span class="ev asm">Assumed</span></p>
+  <div class="callout warn"><b>Two earlier decisions would change</b> on reusing the skin library and the redesign approach.</div>
+</section>
+
+<section class="card" id="picks">
+  <h2><span class="hn">12.</span> What we need from you</h2>
+  <p class="q">Which mockup for each screen, one skin or two, and the open questions?</p>
+  <p>Every choice below is open. Tap a screen for its section. <span class="ev pro">Proposed</span></p>
+  <div class="hscroll"><table id="t-picks" class="picks">
+    <thead><tr><th>Screen</th><th>Today</th><th>Mockup A</th><th>Mockup B</th><th>Pick</th></tr></thead>
+    <tbody>
+<tr><th scope="row"><a href="#conduct">Conduct pane</a></th><td class="th"><a class="shot" href="assets/full/conduct-today.webp"><span class="pic"><img src="assets/t-conduct-today.webp" width="300" height="342" alt="Conduct pane, today" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="th"><a class="shot" href="assets/full/conduct-A.webp"><span class="pic"><img src="assets/t-conduct-A.webp" width="300" height="338" alt="Conduct pane, mockup A" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="th"><a class="shot" href="assets/full/conduct-B.webp"><span class="pic"><img src="assets/t-conduct-B.webp" width="300" height="338" alt="Conduct pane, mockup B" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="pk">A or B, open</td></tr>
+<tr><th scope="row"><a href="#overview">Discipline Overview</a></th><td class="th"><a class="shot" href="assets/full/overview-today.webp"><span class="pic"><img src="assets/t-overview-today.webp" width="300" height="208" alt="Discipline Overview, today" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="th"><a class="shot" href="assets/full/overview-A.webp"><span class="pic"><img src="assets/t-overview-A.webp" width="300" height="168" alt="Discipline Overview, mockup A" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="th"><a class="shot" href="assets/full/overview-B.webp"><span class="pic"><img src="assets/t-overview-B.webp" width="300" height="251" alt="Discipline Overview, mockup B" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="pk">A or B, open</td></tr>
+<tr><th scope="row"><a href="#badge">Captive badge and its menus</a></th><td class="th"><a class="shot" href="assets/full/badge-today.webp"><span class="pic"><img src="assets/t-badge-today.webp" width="300" height="327" alt="Captive badge and its menus, today" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="th"><a class="shot" href="assets/full/badge-A.webp"><span class="pic"><img src="assets/t-badge-A.webp" width="300" height="322" alt="Captive badge and its menus, mockup A" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="th"><a class="shot" href="assets/full/badge-B.webp"><span class="pic"><img src="assets/t-badge-B.webp" width="300" height="283" alt="Captive badge and its menus, mockup B" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="pk">A or B, open</td></tr>
+<tr><th scope="row"><a href="#prisoners">Prisoners and Slaves list</a></th><td class="th"><a class="shot" href="assets/full/prisoners-today.webp"><span class="pic"><img src="assets/t-prisoners-today.webp" width="300" height="235" alt="Prisoners and Slaves list, today" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="th"><a class="shot" href="assets/full/prisoners-A.webp"><span class="pic"><img src="assets/t-prisoners-A.webp" width="300" height="146" alt="Prisoners and Slaves list, mockup A" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="th"><a class="shot" href="assets/full/prisoners-B.webp"><span class="pic"><img src="assets/t-prisoners-B.webp" width="300" height="139" alt="Prisoners and Slaves list, mockup B" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="pk">A or B, open</td></tr>
+<tr><th scope="row"><a href="#gambits">Gambits</a></th><td class="th"><a class="shot" href="assets/full/gambits-today.webp"><span class="pic"><img src="assets/t-gambits-today.webp" width="300" height="225" alt="Gambits, today" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="th"><a class="shot" href="assets/full/gambits-A.webp"><span class="pic"><img src="assets/t-gambits-A.webp" width="300" height="250" alt="Gambits, mockup A" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="th"><a class="shot" href="assets/full/gambits-B.webp"><span class="pic"><img src="assets/t-gambits-B.webp" width="300" height="232" alt="Gambits, mockup B" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="pk">A or B, open</td></tr>
+<tr><th scope="row"><a href="#informants">Informants</a></th><td class="th"><a class="shot" href="assets/full/informants-today.webp"><span class="pic"><img src="assets/t-informants-today.webp" width="300" height="235" alt="Informants, today" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="th"><a class="shot" href="assets/full/informants-A.webp"><span class="pic"><img src="assets/t-informants-A.webp" width="300" height="174" alt="Informants, mockup A" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="th"><a class="shot" href="assets/full/informants-B.webp"><span class="pic"><img src="assets/t-informants-B.webp" width="300" height="183" alt="Informants, mockup B" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="pk">A or B, open</td></tr>
+<tr><th scope="row"><a href="#letter">Verdict letter</a></th><td class="th"><a class="shot" href="assets/full/letter-today.webp"><span class="pic"><img src="assets/t-letter-today.webp" width="300" height="206" alt="Verdict letter, today" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="th"><a class="shot" href="assets/full/letter-A.webp"><span class="pic"><img src="assets/t-letter-A.webp" width="300" height="141" alt="Verdict letter, mockup A" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="th"><a class="shot" href="assets/full/letter-B.webp"><span class="pic"><img src="assets/t-letter-B.webp" width="300" height="125" alt="Verdict letter, mockup B" loading="lazy"></span><span class="open">Open<span class="long">&nbsp;full size</span></span></a></td><td class="pk">A or B, open</td></tr>
+      <tr class="nat"><th scope="row"><a href="#library">One native skin</a></th><td colspan="3">Retire Case file and Ledger's plates for one look</td><td>Yes, no or later; open</td></tr>
+    </tbody>
+  </table></div>
+  <table id="t-questions">
+    <thead><tr><th>Question the mockups left open</th><th>Screen</th></tr></thead>
+    <tbody>
+      <tr><td>1. Gambit outcomes: on each card as drawn, or in its tooltip for a shorter list?</td><td><a href="#gambits">Gambits</a></td></tr>
+      <tr><td>2. Informants: open rows as drawn, or a list with one informant's detail, for large networks?</td><td><a href="#informants">Informants</a></td></tr>
+      <tr><td>3. Captive state symbol: which states get one, and is the meme-box frame the right weight?</td><td><a href="#conduct">Conduct pane</a></td></tr>
+      <tr><td>4. Who knows: counts in a capsule strip, or names only in the tooltip?</td><td><a href="#badge">Captive badge</a></td></tr>
+      <tr><td>5. Chapter tiles: is captive or colony the split that matters, or on, off and dark?</td><td><a href="#overview">Overview</a></td></tr>
+      <tr><td>6. Tier colours: is plain text right for Cooperative and Obedient?</td><td><a href="#prisoners">Prisoners</a></td></tr>
+      <tr><td>7. Fit words: "good fit", "fair fit", "poor fit", or icons?</td><td><a href="#badge">Captive badge</a></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="card" id="open">
+  <h2>Open items</h2>
+  <p class="q">What wasn't captured or drawn, and when is this page out of date?</p>
+  <table>
+    <thead><tr><th>Item</th><th>Why it matters</th><th>How it closes</th></tr></thead>
+    <tbody>
+      <tr><td>Settings window not drawn</td><td>The eighth screen; players open it rarely</td><td>Mock it after the seven picks</td></tr>
+      <tr><td>Hierarchy, policy editor, Network and overlays not mocked</td><td>Already near vanilla, scoring 1 to 3</td><td>Check them under the native skin</td></tr>
+      <tr><td>Reduced modes not drawn</td><td>The mockups show Full mode; each section names what Minimal shows</td><td>Draw Minimal for the picked mockups</td></tr>
+      <tr><td>Surfaces the capture run couldn't set up</td><td>Among them the hierarchy window, informant gizmos and letters, and the Network tab with informants</td><td>A later capture run</td></tr>
+      <tr><td>Each skin captured in a different colony</td><td>Names and values differ between a Case file and a Ledger pair</td><td>A repeatable capture of both skins</td></tr>
+      <tr><td>Vanilla's message box and Anomaly's entity codex not captured</td><td>Figures 9 and 10 show the nearest captured windows instead</td><td>Capture both</td></tr>
+    </tbody>
+  </table>
+  <div class="callout note"><b>Refresh this page when</b> a pick is made or the concept art is painted.</div>
+</section>
+
+<footer>
+  Written 2026-11-10 from the style review's records.<br>Evidence labels: <span class="ev obs">Observed</span> seen in the game, its code or a capture; <span class="ev mea">Measured</span> a sampled value; <span class="ev pro">Proposed</span> a mockup or proposal, not in the game; <span class="ev asm">Assumed</span> an inference.
+</footer>
+
+</div>
+<aside class="rail" aria-label="Figures and tables"><div class="rail-in">
+  <p class="rail-h">Figures and tables</p>
+  <a href="#fig-1">Figure 1, the seven touches</a>
+  <a href="#fig-2">Figure 2, vanilla tokens</a>
+  <a href="#fig-3">Figure 3, today's strays</a>
+  <a href="#fig-4">Figure 4, the scorecard</a>
+  <a href="#fig-5">Figure 5, Conduct pane</a>
+  <a href="#fig-6">Figure 6, Overview</a>
+  <a href="#fig-7">Figure 7, captive badge</a>
+  <a href="#fig-8">Figure 8, Prisoners</a>
+  <a href="#fig-9">Figure 9, Gambits</a>
+  <a href="#fig-10">Figure 10, Informants</a>
+  <a href="#fig-11">Figure 11, verdict letter</a>
+  <a href="#t-library">The skin library</a>
+  <a href="#t-picks">Your picks</a>
+  <a href="#t-questions">Open questions</a>
+  <a class="top" href="#top">Back to top</a>
+</div></aside>
+</main>
+
+<script>
+(() => {
+  const root = document.documentElement;
+  root.classList.add('js-nav');
+  const pick = (selector) => [...document.querySelectorAll(selector)]
+    .map((a) => ({ a, t: document.getElementById(decodeURIComponent(a.hash.slice(1))) })).filter((x) => x.t);
+  // Sections: the left list's links on a single page, the right list's .sec links on a site page.
+  const left = pick('nav.toc a[href^="#"]');
+  const nav = left.length ? left : pick('.rail a.sec');
+  const rail = pick('.rail a[href^="#"]:not(.top):not(.sec)');
+  const list = document.querySelector('.rail-in');
+  const mark = (items, current) => items.forEach(({ a }) => {
+    a.classList.toggle('is-current', a === current);
+    if (a === current) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current');
+  });
+  const passed = (items, line) => { let hit = null; for (const x of items) if (x.t.getBoundingClientRect().top <= line) hit = x; return hit; };
+  // Keeps the marked entry in view when the right list is taller than the window and scrolls on its own.
+  const reveal = (a) => {
+    if (!a || !list || list.scrollHeight <= list.clientHeight) return;
+    const box = list.getBoundingClientRect(); const r = a.getBoundingClientRect();
+    if (r.top < box.top) list.scrollTop -= box.top - r.top + 8;
+    else if (r.bottom > box.bottom) list.scrollTop += r.bottom - box.bottom + 8;
+  };
+  let queued = false;
+  function update() {
+    queued = false;
+    const line = innerHeight / 3;
+    const atEnd = scrollY > 0 && innerHeight + scrollY >= root.scrollHeight - 2;
+    const current = atEnd ? nav[nav.length - 1] : passed(nav, line) || nav[0];
+    mark(nav, current && current.a);
+    if (!rail.length) return;
+    const inside = current && current.t.tagName !== 'MAIN' ? rail.filter((x) => current.t.contains(x.t)) : [];
+    const entry = passed(inside, line);
+    mark(rail, entry && entry.a);
+    reveal(entry ? entry.a : !left.length && current ? current.a : null);
+  }
+  const queue = () => { if (!queued) { queued = true; requestAnimationFrame(update); } };
+  addEventListener('scroll', queue, { passive: true });
+  addEventListener('resize', queue, { passive: true });
+  update();
+  // In a narrow panel, choosing a link closes the panel. Without the script, the switch that opened it closes it.
+  const closeOnPick = (selector, id, query) => {
+    const panel = document.querySelector(selector); const box = document.getElementById(id); const narrow = matchMedia(query);
+    if (panel && box) panel.addEventListener('click', (e) => { if (narrow.matches && e.target.closest('a')) box.checked = false; });
+  };
+  closeOnPick('.rail', 'railshow', '(max-width: 1199px)');
+  closeOnPick('nav.toc', 'navhide', '(max-width: 1000px)');
+})();
+</script>
+</body>
+</html>
