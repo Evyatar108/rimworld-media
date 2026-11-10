@@ -189,6 +189,7 @@
   html:not(.js-nav) body:has(#fig-9:target) .rail a[href="#fig-9"],
   html:not(.js-nav) body:has(#fig-10:target) .rail a[href="#fig-10"],
   html:not(.js-nav) body:has(#fig-11:target) .rail a[href="#fig-11"],
+  html:not(.js-nav) body:has(#fig-12:target) .rail a[href="#fig-12"],
   html:not(.js-nav) body:has(#t-library:target) .rail a[href="#t-library"],
   html:not(.js-nav) body:has(#t-picks:target) .rail a[href="#t-picks"],
   html:not(.js-nav) body:has(#t-questions:target) .rail a[href="#t-questions"] { color: var(--indigo); box-shadow: inset 2px 0 0 var(--indigo); }
@@ -572,6 +573,7 @@
   .colh.v { border-bottom-color: var(--grey); }
   .colh.a { border-bottom-color: var(--teal); }
   .colh.b { border-bottom-color: var(--indigo); }
+  .colh.c { border-bottom-color: var(--amber); }
   a.shot { display: block; border-radius: 4px; }
   a.shot .pic { position: relative; display: block; }
   a.shot img { display: block; width: 100%; height: auto; border-radius: 4px; }
@@ -819,7 +821,7 @@
       <a href="#picks"><b>Each screen</b>Pick mockup A or B for each of the seven screens</a>
       <a href="#library"><b>The skins</b>Say whether one native skin replaces Case file and Ledger</a>
       <a href="#t-questions"><b>The mockups</b>Answer the seven questions the mockups left open</a>
-      <a href="#art"><b>Concept art</b>Say whether to paint three concept images</a>
+      <a href="#art"><b>Concept art</b>See mockup B painted for three screens</a>
     </div>
   </div>
 </header>
@@ -829,7 +831,7 @@
   <ul>
     <li><b>The finding.</b> The default Case file skin strays far from RimWorld's look: its Conduct pane and Overview score 14 of 18. The Ledger skin is the closer start, at 7 for the Conduct pane. <span class="ev obs">Observed</span></li>
     <li><b>The proposal.</b> One native look, built from RimWorld's own window parts, with at most one Ludeon-style touch per screen. Mockup A is strict vanilla; B adds the touch. <span class="ev pro">Proposed</span></li>
-    <li><b>What you decide.</b> A or B for each screen, one native skin or not, the seven open questions, and the concept art. <span class="ev pro">Proposed</span></li>
+    <li><b>What you decide.</b> A or B for each screen, one native skin or not, and the seven open questions. <span class="ev pro">Proposed</span></li>
   </ul>
 </section>
 
@@ -1264,7 +1266,32 @@
 <section class="card" id="art">
   <h2><span class="hn">10.</span> Concept art</h2>
   <p class="q">What would mockup B look like painted?</p>
-  <div class="callout note plan"><b>Planned, waiting for your go-ahead</b> Painted images of mockup B for the Conduct pane, Overview and Informants. <span class="ev pro">Proposed</span></div>
+  <p>Concept art, not a spec: the mockups are the spec, and text inside these images can drift. <span class="ev obs">Observed</span></p>
+  <figure id="fig-12">
+    <div class="strip pair">
+  <div class="slot"><div class="colh b"><b>Mockup B</b><span>Conduct pane: the spec</span></div><a class="shot" href="assets/full/conduct-B.webp"><span class="pic"><img src="assets/conduct-B.webp" width="720" height="1273" alt="Mockup B of the Conduct pane: mockup A plus a framed symbol for the captive's state" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh c"><b>Concept art</b><span>The framed symbol painted</span></div><a class="shot" href="assets/full/concept-conduct.webp"><span class="pic"><img src="assets/concept-conduct.webp" width="900" height="1350" alt="Concept art of mockup B's Conduct pane: the box under the portrait holds a grey metal emblem, an open shackle and chain before a barred window; the rest of the pane follows mockup B" loading="lazy"></span><span class="open">Open full size</span></a></div>
+</div>
+<div class="strip pair">
+  <div class="slot"><div class="colh b"><b>Mockup B</b><span>Discipline Overview: the spec</span></div><a class="shot" href="assets/full/overview-B.webp"><span class="pic"><img src="assets/overview-B.webp" width="900" height="752" alt="Mockup B of the Discipline Overview: five boxes and a band of eight chapter tiles" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh c"><b>Concept art</b><span>The eight chapter tiles painted</span></div><a class="shot" href="assets/full/concept-overview.webp"><span class="pic"><img src="assets/concept-overview.webp" width="900" height="900" alt="Concept art of mockup B's Discipline Overview: eight framed chapter tiles, six slate blue with vertical stripes and two ochre with flame chevrons, each with a white icon" loading="lazy"></span><span class="open">Open full size</span></a></div>
+</div>
+<div class="strip pair">
+  <div class="slot"><div class="colh b"><b>Mockup B</b><span>Informants: the spec</span></div><a class="shot" href="assets/full/informants-B.webp"><span class="pic"><img src="assets/informants-B.webp" width="840" height="513" alt="Mockup B of the Informants window: each informant as a catalogue card with a portrait" loading="lazy"></span><span class="open">Open full size</span></a></div>
+  <div class="slot"><div class="colh c"><b>Concept art</b><span>The two portraits redrawn</span></div><a class="shot" href="assets/full/concept-informants.webp"><span class="pic"><img src="assets/concept-informants.webp" width="900" height="600" alt="Concept art of mockup B's Informants window: Leopard and Red redrawn as flat-shaded portraits in their catalogue cards" loading="lazy"></span><span class="open">Open full size</span></a></div>
+</div>
+    <figcaption>Figure 12. An image model painted mockup B's new art for three screens, each shown with its mockup.</figcaption>
+  </figure>
+  <details><summary>Where the painted text drifts from mockup B</summary>
+    <ul>
+      <li>Conduct pane: the emblem is grey and shaded, not the single off-white tone asked for.</li>
+      <li>Conduct pane: "Soube'ton Kinship" became "Souble'ton Kinship".</li>
+      <li>Conduct pane: the Attempt Informant Recruitment button is no longer dimmed, so it looks enabled.</li>
+      <li>Conduct pane: the window is wider for its height than mockup B's.</li>
+      <li>Overview: the eight chapter names lost their bold weight.</li>
+      <li>Informants: the caption under the window is gone.</li>
+    </ul>
+  </details>
 </section>
 
 <section class="card" id="library">
@@ -1334,7 +1361,7 @@
       <tr><td>Vanilla's message box and Anomaly's entity codex not captured</td><td>Figures 9 and 10 show the nearest captured windows instead</td><td>Capture both</td></tr>
     </tbody>
   </table>
-  <div class="callout note"><b>Refresh this page when</b> a pick is made or the concept art is painted.</div>
+  <div class="callout note"><b>Refresh this page when</b> a pick is made.</div>
 </section>
 
 <footer>
@@ -1355,6 +1382,7 @@
   <a href="#fig-9">Figure 9, Gambits</a>
   <a href="#fig-10">Figure 10, Informants</a>
   <a href="#fig-11">Figure 11, verdict letter</a>
+  <a href="#fig-12">Figure 12, concept art</a>
   <a href="#t-library">The skin library</a>
   <a href="#t-picks">Your picks</a>
   <a href="#t-questions">Open questions</a>
